@@ -6,76 +6,160 @@ Three-tier cascade: `danielmiessler/PAI` → `superuser-pal/pai-obsidian` (publi
 
 ## Phase 1 — Create the fork and wire the remotes
 
-- [x] **1.1** Go to `github.com/danielmiessler/Personal_AI_Infrastructure` → Fork → name it `pai-obsidian` under `superuser-pal` ✅ 2026-06-06
-- [x] **1.2** Clone locally: `git clone git@github.com:superuser-pal/pai-obsidian.git ~/Documents/GitHub/pai-obsidian` ✅ 2026-06-06
-- [x] **1.3** Wire remotes in `pai-obsidian`: ✅ 2026-06-06
-  ```bash
-  cd ~/Documents/GitHub/pai-obsidian
-  git remote add upstream https://github.com/danielmiessler/Personal_AI_Infrastructure.git
-  git fetch upstream
-  git remote -v
-  ```
-- [x] **1.4** Wire `obsidian` remote into private fork: ✅ 2026-06-06
-  ```bash
-  # In Personal_AI_Infrastructure/
-  git remote add obsidian git@github.com:superuser-pal/pai-obsidian.git
-  git remote -v
-  ```
-- [x] **1.5** Create permanent working branch in `pai-obsidian`: ✅ 2026-06-06
-  ```bash
-  git checkout -b obsidian-edition
-  git push -u origin obsidian-edition
-  ```
+- [x] **1.1** Fork `danielmiessler/Personal_AI_Infrastructure` → `superuser-pal/pai-obsidian` ✅ 2026-06-06
+- [x] **1.2** Clone locally to `~/Documents/GitHub/pai-obsidian` ✅ 2026-06-06
+- [x] **1.3** Wire `upstream` remote → `danielmiessler/Personal_AI_Infrastructure` ✅ 2026-06-06
+- [x] **1.4** Wire `obsidian` remote in private fork → `superuser-pal/pai-obsidian` ✅ 2026-06-06
+- [x] **1.5** Create and push `obsidian-edition` working branch ✅ 2026-06-06
 
 ---
 
-## Phase 2 — Trim the release installer (in pai-obsidian Claude Code session)
+## Phase 2 — Release installer and root documentation
 
-**Approach change from original plan:** `Packs/` stays intact as reference material.
-Trimming targets `Releases/v5.0.0/.claude/skills/` — the actual installer users run.
-Verdicts are tracked in `OBSIDIAN_FORK_BACKLOG.md`.
+**Context:** `Packs/` stays intact as reference material. All active work targets
+`Releases/v5.0.0/.claude/` — the installer users actually run. Current branch: `obsidian-edition`.
 
-- [x] **2.1** Trim `Releases/v5.0.0/.claude/skills/` — remove non-Obsidian skills per backlog verdicts: ✅ 2026-06-07
-  Removed: `ArXiv`, `BrightData`, `Interceptor`, `PAIUpgrade`, `PrivateInvestigator`, `Remotion`
-  Remaining: 39 skills aligned with Obsidian use cases.
-- [ ] **2.2** Merge `chore/archive-purge` into `obsidian-edition` so all trimming work lands on the right branch.
-- [ ] **2.3** Create `CLAUDE.md` at repo root — Obsidian-fork identity, kept skills reference, vault conventions. *(See PR 4 in backlog.)*
+- [x] **2.1** Trim `Releases/v5.0.0/.claude/skills/` per backlog verdicts ✅ 2026-06-07
+  Removed: `ArXiv`, `BrightData`, `Interceptor`, `PAIUpgrade`, `PrivateInvestigator`, `Remotion` → 39 skills remain.
+- [x] **2.2** Merge `chore/archive-purge` → `obsidian-edition` (fast-forward) ✅ 2026-06-07
+- [ ] **2.3** Create root `CLAUDE.md` — the fork's operational identity for Claude Code.
+
+  **What it must contain (build from scratch, do NOT copy upstream CLAUDE.md):**
+
+  1. **Fork identity block** — one paragraph: what pai-obsidian is, who it's for, the three-tier model sentence (`PAI upstream → pai-obsidian → your private fork`).
+  2. **Installation pointer** — tell users to run `Releases/v5.0.0/install.sh` to wire `.claude/` into their home directory.
+  3. **Kept skills table** — one-line description per skill, grouped: Thinking, Research, Knowledge, Creative, Dev, Obsidian (last group empty until Phase 3). Source descriptions from `OBSIDIAN_FORK_BACKLOG.md` Verdict=KEEP rows.
+  4. **Vault conventions block** — folder purposes, filing rules, gitignore policy (filled in Phase 4 once scaffold exists).
+  5. **Minimal operational rules** — strip to Obsidian-relevant subset from `Releases/v5.0.0/.claude/CLAUDE.md`:
+     - `bun/bunx always. Never npm/npx.`
+     - `TypeScript always.`
+     - `Never hardcode paths — use ${PAI_DIR}, relative paths.`
+     - Remove all Pulse/ALGORITHM/Forge/RTK/voice/DA references (upstream-only machinery).
+  6. **No `@`-imports** — USER/ context files don't exist yet; add them in Phase 5.
+
+- [ ] **2.4** Rewrite `README.md` — Obsidian fork identity, three-tier diagram (text/Mermaid), quick-start install steps.
+- [ ] **2.5** Delete `PLATFORM.md` — upstream architecture doc, not fork-relevant.
+- [ ] **2.6** Trim `SECURITY.md` — strip upstream-specific contact/policy refs; keep generic vulnerability disclosure.
 
 ---
 
 ## Phase 3 — Port the 7 Obsidian skills from private fork
 
-Still in the `pai-obsidian` session. Port in this exact order (dependency chain).
+**Source:** `~/Documents/GitHub/Personal_AI_Infrastructure/.claude/skills/<Skill>/`
+**Destination:** `Releases/v5.0.0/.claude/skills/<Skill>/` (adds to the installer)
 
-For each skill:
-1. Copy folder from `~/Documents/GitHub/Personal_AI_Infrastructure/.claude/skills/<Skill>/`
-2. Audit: `grep -ri "rodrigo\|canoteran\|superuser\|promptpal\|HOME/" .claude/skills/<Skill>/`
-3. Replace any personal refs with template variables or relative paths
-4. Commit: `feat(skills): port <Skill> from private fork`
+**Protocol per skill:**
+1. Copy the folder.
+2. Run sanitization audit: `grep -ri "rodrigo\|canoteran\|superuser\|promptpal\|HOME\|pai-private" Releases/v5.0.0/.claude/skills/<Skill>/`
+3. Replace hits with template variables (`{{YOUR_NAME}}`, `{{VAULT_DIR}}`, `${PAI_DIR}`) or generic relative paths.
+4. Verify SKILL.md frontmatter has no personal `author:` or `license:` fields that leak identity.
+5. Commit: `feat(skills): port <Skill> from private fork`
 
-- [ ] **3.1** Port `Qmd` — foundational search, SecondBrain depends on it
-- [ ] **3.2** Port `ObsidianMarkdown` — no dependencies
-- [ ] **3.3** Port `ObsidianBases` — no dependencies
-- [ ] **3.4** Port `ObsidianCLI` — no dependencies
-- [ ] **3.5** Port `SecondBrain` — depends on Qmd
-- [ ] **3.6** Port `ProjectManagement` — depends on SecondBrain patterns
-- [ ] **3.7** Port `DailyRituals` — depends on SecondBrain + ProjectManagement
+**Port in this exact order (dependency chain):**
 
----
+- [ ] **3.1** `Qmd` — foundational vault search used by SecondBrain. Hardcodes vault path — must be replaced with `${VAULT_DIR}` env var.
+- [ ] **3.2** `ObsidianMarkdown` — no dependencies. Formatting conventions for Obsidian-flavored MD (callouts, front-matter, wikilinks).
+- [ ] **3.3** `ObsidianBases` — no dependencies. Manages Bases (Obsidian's native database view). Check for any hardcoded base names.
+- [ ] **3.4** `ObsidianCLI` — no dependencies. Wraps `obsidian-cli` or URI scheme commands. Replace any absolute app paths.
+- [ ] **3.5** `SecondBrain` — depends on `Qmd`. Core capture/process/file workflow. Heavy on vault-path refs.
+- [ ] **3.6** `ProjectManagement` — depends on SecondBrain patterns. Check for any project-specific folder names to generalize.
+- [ ] **3.7** `DailyRituals` — depends on SecondBrain + ProjectManagement. Check for time-zone, calendar, or personal schedule refs.
 
-## Phase 4 — Add the vault scaffold template
-
-- [ ] **4.1** Create scaffold folders at `pai-obsidian` root: `inbox/raw`, `inbox/ready`, `plan`, `thinking`, `domains`, `bases`, `dashboards`
-- [ ] **4.2** Add `.gitkeep` + content `.gitignore` to each folder (ignores everything except `.gitkeep` and `.gitignore` — users fill vault without committing personal notes)
-- [ ] **4.3** Extract vault conventions block from private fork's `CLAUDE.md` → add to `pai-obsidian`'s `CLAUDE.md` (strip personal refs first)
+**After all 7 ported:** update the Obsidian group in the root `CLAUDE.md` skills table (Phase 2.3 step 3).
 
 ---
 
-## Phase 5 — Wire the USER scaffold templates
+## Phase 4 — Vault scaffold template
 
-- [ ] **5.1** Audit `USER/` in `pai-obsidian` — replace personal content with `{{TEMPLATE}}` variables
-  Key files: `PRINCIPAL_IDENTITY.md`, `DA_IDENTITY.md`, `TELOS/`
-- [ ] **5.2** Add `USER/.gitignore` so the private fork layer can override these files locally without committing personal data
+**Goal:** users who clone the fork get a ready-to-use Obsidian vault folder structure.
+Each folder contains only `.gitkeep` + a `.gitignore` that prevents personal notes from being committed.
+
+- [ ] **4.1** Create these folders at repo root:
+
+  | Folder | Purpose |
+  |---|---|
+  | `inbox/raw/` | Unprocessed captures — web clips, voice notes, raw ideas. Nothing filed here; it's a holding pen. |
+  | `inbox/ready/` | Processed captures awaiting filing into `domains/` or `bases/`. |
+  | `plan/` | Project plans, ISA artifacts, PRDs. Active work-in-progress. |
+  | `thinking/` | Working notes, Council/RedTeam outputs, research drafts. Exploratory, not final. |
+  | `domains/` | Evergreen knowledge by subject area. Long-lived notes that compound over time. |
+  | `bases/` | Obsidian Bases files (`.base` extension). Database views over the vault. |
+  | `dashboards/` | MOC-style hub notes, daily/weekly dashboards, entry points into the vault. |
+
+- [ ] **4.2** Add to each folder:
+  - `.gitkeep` (empty, makes git track the folder)
+  - `.gitignore` with exactly:
+    ```
+    *
+    !.gitkeep
+    !.gitignore
+    ```
+  This lets users fill the vault locally without any risk of committing personal notes.
+
+- [ ] **4.3** Add vault conventions block to root `CLAUDE.md` (back-fill from 2.3):
+  - What each folder is for (from the table above).
+  - Filing rule: everything enters via `inbox/raw/`, gets processed to `inbox/ready/`, then filed to `domains/` or `bases/`.
+  - Note format: Obsidian front-matter (`---` YAML), wikilinks preferred over markdown links inside vault.
+  - Do NOT include personal daily ritual details — keep it generic template language.
+
+---
+
+## Phase 5 — USER scaffold templates
+
+**Goal:** provide fill-in-the-blank identity files so the fork works as a starting point without leaking personal data. `USER/` does not currently exist in this repo — create it from scratch.
+
+- [ ] **5.1** Create `USER/PRINCIPAL_IDENTITY.md` — who the human is:
+  ```markdown
+  ---
+  name: {{YOUR_NAME}}
+  role: {{YOUR_ROLE}}
+  ---
+
+  # Principal Identity
+
+  **Name:** {{YOUR_NAME}}
+  **Role / title:** {{YOUR_ROLE}}
+  **Primary goals:** {{YOUR_GOALS}}
+  **Communication style:** {{DIRECT|COLLABORATIVE|FORMAL}}
+  ```
+
+- [ ] **5.2** Create `USER/DA_IDENTITY.md` — the digital assistant persona:
+  ```markdown
+  ---
+  name: {{DA_NAME}}
+  ---
+
+  # Digital Assistant Identity
+
+  **Name:** {{DA_NAME}}
+  **Personality:** {{DESCRIBE_TONE}}
+  **Specialization:** Obsidian-based knowledge management and personal productivity.
+  ```
+
+- [ ] **5.3** Create `USER/TELOS/PRINCIPAL_TELOS.md` — purpose and values template:
+  ```markdown
+  # Principal Telos
+
+  ## Mission
+  {{YOUR_MISSION_STATEMENT}}
+
+  ## Core values
+  - {{VALUE_1}}
+  - {{VALUE_2}}
+
+  ## Current focus areas
+  - {{FOCUS_1}}
+  - {{FOCUS_2}}
+  ```
+
+- [ ] **5.4** Create `USER/.gitignore`:
+  ```
+  *
+  !.gitignore
+  ```
+  This makes `USER/` effectively invisible to git so private forks can drop real identity files here without risk of committing them. The template files in 5.1–5.3 are committed because they're tracked before the `.gitignore` is created — add them first, then add the `.gitignore` in a separate commit.
+
+- [ ] **5.5** Add `@USER/PRINCIPAL_IDENTITY.md` and `@USER/DA_IDENTITY.md` imports to the top of root `CLAUDE.md` (back-fill from 2.3, once USER/ files exist).
 
 ---
 
@@ -89,7 +173,7 @@ Back in `Personal_AI_Infrastructure/`.
   git log obsidian/main..HEAD
   git log HEAD..obsidian/main
   ```
-- [ ] **6.2** Verify personal-only skills are clearly separated from inherited skills
+- [ ] **6.2** Verify personal-only skills are clearly separated from inherited skills.
 - [ ] **6.3** Document the ongoing sync command:
   ```bash
   git fetch obsidian
@@ -101,13 +185,13 @@ Back in `Personal_AI_Infrastructure/`.
 
 ## Phase 7 — Tag and publish
 
-- [ ] **7.1** Tag the first release in `pai-obsidian`:
+- [ ] **7.1** Tag the first release:
   ```bash
   git checkout obsidian-edition
   git tag v1.0.0
   git push origin v1.0.0
   ```
-- [ ] **7.2** Write README explaining the three-tier model (fork this → add personal layer on top)
+- [ ] **7.2** Write `README.md` explaining the three-tier model (fork this → add personal layer on top). *(Covered by 2.4 above — cross-check and finalize here.)*
 
 ---
 
