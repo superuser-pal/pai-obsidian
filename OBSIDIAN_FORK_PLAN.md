@@ -21,26 +21,25 @@ Three-tier cascade: `danielmiessler/PAI` → `superuser-pal/pai-obsidian` (publi
   git remote add obsidian git@github.com:superuser-pal/pai-obsidian.git
   git remote -v
   ```
-- [ ] **1.5** Create permanent working branch in `pai-obsidian`:
+- [x] **1.5** Create permanent working branch in `pai-obsidian`: ✅ 2026-06-06
   ```bash
-  cd ~/Documents/GitHub/pai-obsidian
   git checkout -b obsidian-edition
   git push -u origin obsidian-edition
   ```
 
 ---
 
-## Phase 2 — Trim the skill set (in pai-obsidian Claude Code session)
+## Phase 2 — Trim the release installer (in pai-obsidian Claude Code session)
 
-Open `~/Documents/GitHub/pai-obsidian` in a new Claude Code session. Trim in groups, commit after each group, verify nothing breaks.
+**Approach change from original plan:** `Packs/` stays intact as reference material.
+Trimming targets `Releases/v5.0.0/.claude/skills/` — the actual installer users run.
+Verdicts are tracked in `OBSIDIAN_FORK_BACKLOG.md`.
 
-- [ ] **2.1** First pass — obvious cuts (no cross-dependencies):
-  Remove: `Apify`, `BrightData`, `Remotion`, `USMetrics`, `PrivateInvestigator`, `AudioEditor`, `Art`, `WriteStory`, `Sales`, `Daemon`
-- [ ] **2.2** Second pass — judgment calls (review each SKILL.md before removing):
-  Candidates: `RedTeam`, `Silas`, `Evals`, `WorldThreatModel`, `BitterPillEngineering`, `Webdesign`, `Agents`, `Migrate`, `Interceptor`, `Browser`
-- [ ] **2.3** Confirm these are never removed (core machinery):
-  `ISA`, `Algorithm`, `Research`, `Knowledge`, `ExtractWisdom`, `Fabric`, `Council`, `Science`, `FirstPrinciples`, `CreateSkill`, `PAIUpgrade`, `IterativeDepth`, `ApertureOscillation`
-- [ ] **2.4** Update `CLAUDE.md` in `pai-obsidian` — remove references to deleted skills
+- [x] **2.1** Trim `Releases/v5.0.0/.claude/skills/` — remove non-Obsidian skills per backlog verdicts: ✅ 2026-06-07
+  Removed: `ArXiv`, `BrightData`, `Interceptor`, `PAIUpgrade`, `PrivateInvestigator`, `Remotion`
+  Remaining: 39 skills aligned with Obsidian use cases.
+- [ ] **2.2** Merge `chore/archive-purge` into `obsidian-edition` so all trimming work lands on the right branch.
+- [ ] **2.3** Create `CLAUDE.md` at repo root — Obsidian-fork identity, kept skills reference, vault conventions. *(See PR 4 in backlog.)*
 
 ---
 
