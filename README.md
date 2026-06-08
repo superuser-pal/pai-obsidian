@@ -22,7 +22,7 @@ graph TD
 | Tier | What it is |
 |---|---|
 | **PAI upstream** | The full Personal AI Infrastructure — Pulse, DA, Algorithm, 45+ skills |
-| **pai-obsidian** | This fork — trimmed to 39 skills for thinking, research, and knowledge work. Adds an Obsidian vault scaffold and 7 vault-native skills (Phase 3) |
+| **pai-obsidian** | This fork — 46 skills for thinking, research, and knowledge work, including 7 vault-native Obsidian skills, plus an Obsidian vault scaffold |
 | **your private fork** | Fork this repo. Add your identity files, personal API keys, and custom skills here. Never commit personal data to this layer |
 
 ---

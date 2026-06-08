@@ -229,13 +229,17 @@ Back in `Personal_AI_Infrastructure/`.
 
 ## Phase 7 — Tag and publish
 
-- [ ] **7.1** Tag the first release:
-  ```bash
-  git checkout obsidian-edition
-  git tag v1.0.0
-  git push origin v1.0.0
-  ```
-- [ ] **7.2** Write `README.md` explaining the three-tier model (fork this → add personal layer on top). *(Covered by 2.4 above — cross-check and finalize here.)*
+- [x] **7.1** Tag the first release ✅ 2026-06-08. Tagged **`obsidian-v1.0.0`** (prefixed, not
+  plain `v1.0.0` — the repo already carries inherited PAI tags up to `v2.0.0`, so a plain
+  `v1.0.0` would sit below them). `main` fast-forwarded to `obsidian-edition` and the tag
+  landed on `main`. Marks **part one**: 7 Obsidian skills ported with the `$VAULT_DIR`/`$PAI_DIR`
+  split, vault scaffold, private-fork sync. Part Two (lean + Obsidian-native) is tracked above.
+- [x] **7.2** README three-tier model finalized ✅ 2026-06-08 (cross-checked from 2.4; skill
+  count corrected 39 → 46, install path fixed).
+
+> ⚠️ Tagged **pre-install-verification**. The fresh-install flow still needs an end-to-end
+> run (doc/path bugs were already shaken out 2026-06-08). If the verified install surfaces
+> fixes, cut `obsidian-v1.0.1`.
 
 ---
 
