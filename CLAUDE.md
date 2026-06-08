@@ -99,7 +99,32 @@ bash install.sh
 
 ## Vault conventions
 
-*Filled in Phase 4 once the vault scaffold is created.*
+The repo root ships an empty Obsidian vault scaffold. Point `$VAULT_DIR` at it (or at
+your own vault) and the Obsidian skills operate against these folders:
+
+| Folder | Purpose |
+|---|---|
+| `inbox/raw/` | Unprocessed captures — web clips, voice notes, raw ideas. A holding pen; nothing is filed here. |
+| `inbox/ready/` | Processed captures with full frontmatter, awaiting filing into `domains/` or `bases/`. |
+| `plan/` | Daily/weekly plans, ISA artifacts, PRDs. Active work-in-progress. |
+| `thinking/` | Working notes, Council/RedTeam outputs, research drafts. Exploratory, never auto-routed. |
+| `domains/` | Evergreen knowledge by subject — long-lived notes that compound. One folder per topic, each `{INDEX, 01_PROJECTS, 02_PAGES, 03_ARCHIVE}`. |
+| `bases/` | Obsidian Bases files (`.base`) — database views over the vault. |
+| `dashboards/` | MOC-style hub notes, `TASKS.md`, daily/weekly dashboards — entry points into the vault. |
+
+**Filing flow:** everything enters via `inbox/raw/` → `/process` shapes it into
+`inbox/ready/` with frontmatter → `/distribute` files it to `domains/<Topic>/02_PAGES/`
+(or `bases/`). See `SecondBrain` for the full lifecycle.
+
+**Note format:**
+- Obsidian YAML frontmatter (`---` block) on every filed note — at minimum `type`,
+  `created`, `source`, `tags`. Timestamps are local `YYYY-MM-DD HH:MM AM/PM`, never ISO Z.
+- Prefer `[[wikilinks]]` over markdown links inside the vault — they drive entity ripple
+  and backlinks.
+
+**Git:** every content folder ships a blanket-ignore `.gitignore` (`*` / `!.gitkeep` /
+`!.gitignore`), so your notes stay local and never commit to the public fork. Relax a
+folder's `.gitignore` in your own private fork if you want to version its content.
 
 ---
 

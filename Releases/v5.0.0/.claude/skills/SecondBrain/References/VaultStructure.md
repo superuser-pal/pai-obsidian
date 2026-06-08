@@ -15,22 +15,23 @@ derive from `$PAI_DIR`, every vault-content path from `$VAULT_DIR`.
 
 All paths below are relative to `$VAULT_DIR`.
 
-| Path | Tracked? | Owner | Purpose |
-|---|---|---|---|
-| `inbox/raw/` | ❌ ignored | `/capture`, `/brain-dump`, `/quick-dump` | Unprocessed input — anything goes |
-| `inbox/ready/` | ❌ ignored | `/process` | Frontmatter-shaped, awaiting distribution |
-| `thinking/` | ❌ ignored | `/capture --thinking`, user | Private drafts, never auto-routed |
-| `plan/` | ✅ tracked | `/open-day`, user | Daily plans, one file per day |
-| `domains/` | ✅ tracked | `/distribute`, `/create-domain`, user | Topical knowledge — one folder per topic |
-| `bases/` | ✅ tracked | user (in Obsidian) | Obsidian Bases dashboards |
-| `.obsidian/app.json` | ✅ tracked | install | Vault-wide config |
-| `.obsidian/community-plugins.json` | ✅ tracked | install + user | Plugin enable list |
-| `.obsidian/workspace*.json` | ❌ ignored | Obsidian runtime | Per-machine UI state |
-| `.obsidian/plugins/` | ❌ ignored | Obsidian | Plugin binaries (reinstall per machine) |
+| Path | Owner | Purpose |
+|---|---|---|
+| `inbox/raw/` | `/capture`, `/brain-dump`, `/quick-dump` | Unprocessed input — anything goes |
+| `inbox/ready/` | `/process` | Frontmatter-shaped, awaiting distribution |
+| `thinking/` | `/capture --thinking`, user | Private drafts, never auto-routed |
+| `plan/` | `/open-day`, user | Daily plans, one file per day |
+| `domains/` | `/distribute`, `/create-domain`, user | Topical knowledge — one folder per topic |
+| `bases/` | user (in Obsidian) | Obsidian Bases dashboards |
+| `dashboards/` | `ProjectManagement`, user | MOC hubs, `TASKS.md`, daily/weekly dashboards |
 
-The tracked/ignored split is enforced by the per-folder `.gitignore` files the Phase 4
-vault scaffold ships — `domains/` and `plan/` are committed; `inbox/` and `thinking/`
-are local-only.
+**Git tracking:** the Phase 4 vault scaffold ships every content folder with a
+blanket-ignore `.gitignore` (`*` / `!.gitkeep` / `!.gitignore`) — nothing you write
+into the vault is committed by default, so personal notes never leak into the public
+fork. If you want to version a folder's content in your own private fork, relax that
+folder's `.gitignore` (e.g. allow `*.md`). `.obsidian/workspace*.json` and
+`.obsidian/plugins/` should stay ignored (per-machine state); `app.json` and
+`community-plugins.json` are safe to track if you choose to.
 
 ## Domain folder shape
 

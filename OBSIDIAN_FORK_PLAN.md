@@ -128,9 +128,11 @@ no consumer ever mixes a `memory*` path with `root`. Therefore:
 | QueueUpdate | `memoryState` | `$PAI_DIR` | no |
 | IngestLog | `memoryObservability` | `$PAI_DIR` | no |
 
-**Carry-forward to Phase 4:** the per-folder `.gitignore` must respect the skills'
-tracked/ignored model from `SecondBrain/References/VaultStructure.md` — `domains/` and `plan/`
-**tracked**, `inbox/` and `thinking/` **ignored** — not a blanket `*` rule.
+**Carry-forward to Phase 4 — RESOLVED:** initial instinct was a differentiated gitignore
+(`domains/`/`plan/` tracked, `inbox/`/`thinking/` ignored). Decision (2026-06-08): ship a
+**uniform blanket-ignore** (`*` / `!.gitkeep` / `!.gitignore`) on every content folder —
+public-fork safety wins; users relax a folder's `.gitignore` in their own private fork to
+version it. `VaultStructure.md` updated to match.
 
 **After all 7 ported:** update the Obsidian group in the root `CLAUDE.md` skills table (Phase 2.3 step 3).
 
@@ -141,7 +143,7 @@ tracked/ignored model from `SecondBrain/References/VaultStructure.md` — `domai
 **Goal:** users who clone the fork get a ready-to-use Obsidian vault folder structure.
 Each folder contains only `.gitkeep` + a `.gitignore` that prevents personal notes from being committed.
 
-- [ ] **4.1** Create these folders at repo root:
+- [x] **4.1** Create these folders at repo root: ✅ 2026-06-08 — 7 folders created (`inbox/raw`, `inbox/ready`, `plan`, `thinking`, `domains`, `bases`, `dashboards`).
 
   | Folder | Purpose |
   |---|---|
@@ -153,21 +155,13 @@ Each folder contains only `.gitkeep` + a `.gitignore` that prevents personal not
   | `bases/` | Obsidian Bases files (`.base` extension). Database views over the vault. |
   | `dashboards/` | MOC-style hub notes, daily/weekly dashboards, entry points into the vault. |
 
-- [ ] **4.2** Add to each folder:
-  - `.gitkeep` (empty, makes git track the folder)
-  - `.gitignore` with exactly:
-    ```
-    *
-    !.gitkeep
-    !.gitignore
-    ```
-  This lets users fill the vault locally without any risk of committing personal notes.
+- [x] **4.2** Add to each folder: `.gitkeep` + blanket-ignore `.gitignore` (`*` / `!.gitkeep` /
+  `!.gitignore`). ✅ 2026-06-08 — blanket-ignore verified (a test `domains/note.md` is git-ignored).
 
-- [ ] **4.3** Add vault conventions block to root `CLAUDE.md` (back-fill from 2.3):
-  - What each folder is for (from the table above).
-  - Filing rule: everything enters via `inbox/raw/`, gets processed to `inbox/ready/`, then filed to `domains/` or `bases/`.
-  - Note format: Obsidian front-matter (`---` YAML), wikilinks preferred over markdown links inside vault.
-  - Do NOT include personal daily ritual details — keep it generic template language.
+- [x] **4.3** Add vault conventions block to root `CLAUDE.md`. ✅ 2026-06-08 — folder table,
+  filing flow (`inbox/raw` → `/process` → `inbox/ready` → `/distribute` → `domains/`), note
+  format (YAML frontmatter, local `YYYY-MM-DD HH:MM AM/PM` timestamps, wikilinks), and the
+  blanket-ignore git note. Generic template language only.
 
 ---
 
