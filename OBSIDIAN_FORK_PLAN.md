@@ -22,24 +22,18 @@ Three-tier cascade: `danielmiessler/PAI` → `superuser-pal/pai-obsidian` (publi
 - [x] **2.1** Trim `Releases/v5.0.0/.claude/skills/` per backlog verdicts ✅ 2026-06-07
   Removed: `ArXiv`, `BrightData`, `Interceptor`, `PAIUpgrade`, `PrivateInvestigator`, `Remotion` → 39 skills remain.
 - [x] **2.2** Merge `chore/archive-purge` → `obsidian-edition` (fast-forward) ✅ 2026-06-07
-- [ ] **2.3** Create root `CLAUDE.md` — the fork's operational identity for Claude Code.
+- [x] **2.3** Create root `CLAUDE.md` — the fork's operational identity for Claude Code. ✅ 2026-06-08
+  Fork identity block, installation pointer, 39-skill table grouped by category (Thinking/Research/Knowledge/Creative/Dev/Obsidian), vault conventions stub, 3 operational rules. No @-imports.
 
-  **What it must contain (build from scratch, do NOT copy upstream CLAUDE.md):**
+- [x] **2.4** Rewrite `README.md` — Obsidian fork identity, three-tier Mermaid diagram, quick-start install steps. ✅ 2026-06-08
 
-  1. **Fork identity block** — one paragraph: what pai-obsidian is, who it's for, the three-tier model sentence (`PAI upstream → pai-obsidian → your private fork`).
-  2. **Installation pointer** — tell users to run `Releases/v5.0.0/install.sh` to wire `.claude/` into their home directory.
-  3. **Kept skills table** — one-line description per skill, grouped: Thinking, Research, Knowledge, Creative, Dev, Obsidian (last group empty until Phase 3). Source descriptions from `OBSIDIAN_FORK_BACKLOG.md` Verdict=KEEP rows.
-  4. **Vault conventions block** — folder purposes, filing rules, gitignore policy (filled in Phase 4 once scaffold exists).
-  5. **Minimal operational rules** — strip to Obsidian-relevant subset from `Releases/v5.0.0/.claude/CLAUDE.md`:
-     - `bun/bunx always. Never npm/npx.`
-     - `TypeScript always.`
-     - `Never hardcode paths — use ${PAI_DIR}, relative paths.`
-     - Remove all Pulse/ALGORITHM/Forge/RTK/voice/DA references (upstream-only machinery).
-  6. **No `@`-imports** — USER/ context files don't exist yet; add them in Phase 5.
+- [x] **2.5** Delete `PLATFORM.md` — upstream architecture doc, not fork-relevant. ✅ 2026-06-08
 
-- [ ] **2.4** Rewrite `README.md` — Obsidian fork identity, three-tier diagram (text/Mermaid), quick-start install steps.
-- [ ] **2.5** Delete `PLATFORM.md` — upstream architecture doc, not fork-relevant.
-- [ ] **2.6** Trim `SECURITY.md` — strip upstream-specific contact/policy refs; keep generic vulnerability disclosure.
+- [x] **2.6** Trim `SECURITY.md` — replaced PAI_DIRECTORY warning with pai-obsidian/pai-private separation model; kept prompt injection guidance. ✅ 2026-06-08
+
+**Note — PRs 2+3 from backlog cancelled:** `Packs/` stays intact as the reference catalog. The 39 skills already in `Releases/v5.0.0/.claude/skills/` (trimmed in Phase 2.1) are the definitive installed set. Users browse `Packs/` to optionally install more.
+
+**Note — local install deferred:** Install currently targets `~/.claude/` (global). Changing to project-local install is a breaking change — deferred to a later phase with proper testing. Requires modifying `install.sh`.
 
 ---
 
