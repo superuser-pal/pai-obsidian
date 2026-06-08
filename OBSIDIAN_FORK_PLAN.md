@@ -136,6 +136,15 @@ version it. `VaultStructure.md` updated to match.
 
 **After all 7 ported:** update the Obsidian group in the root `CLAUDE.md` skills table (Phase 2.3 step 3).
 
+**Post-port correction (2026-06-09):** step 3.0 copied only `commands/qmd/`, but SecondBrain,
+DailyRituals, and ProjectManagement also ship slash-command wrappers that route to their
+workflows — these were missed, leaving the documented `/capture`, `/process`, `/week-prep`,
+`/task-sync` entry points unreachable. Caught during the user-journeys analysis (see
+`OBSIDIAN_USER_JOURNEYS.md` P0-1) and fixed in commit `4d7a4e7`: 17 command files ported —
+SecondBrain (10, root), DailyRituals (`rituals/`, 3), ProjectManagement (`manage/`, 4). Open
+follow-up: subdir namespacing makes them `/rituals:week-prep` not the bare `/week-prep` the
+SKILL.md tables document — flatten or update the docs.
+
 ---
 
 ## Phase 4 — Vault scaffold template
