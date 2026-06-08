@@ -13,7 +13,7 @@ bash install.sh
 
 ## Skills
 
-39 skills ship with this fork. The Obsidian group is empty until Phase 3 ports the vault skills.
+46 skills ship with this fork, including the 7 Obsidian skills ported in Phase 3 (see the Obsidian group below).
 
 ### Thinking
 
@@ -81,7 +81,19 @@ bash install.sh
 
 ### Obsidian
 
-*Skills ported in Phase 3. Empty until then.*
+| Skill | Description |
+|---|---|
+| `Qmd` | Semantic vault search (QMD): hybrid BM25 + vector + LLM rerank over your notes, with dedup checks. External `qmd` CLI — `bun install -g qmd`, set `$VAULT_DIR` |
+| `ObsidianMarkdown` | Obsidian-flavored markdown conventions — callouts, properties (YAML frontmatter), embeds, wikilinks |
+| `ObsidianBases` | Manages Bases (Obsidian's native database views) with a functions reference |
+| `ObsidianCLI` | Wraps the `obsidian` CLI to read/create/search notes and develop plugins (requires Obsidian running) |
+| `SecondBrain` | Capture → process → distribute lifecycle: `inbox/raw → inbox/ready → domains/<Topic>` with entity ripple into the harvest queue. Splits `$VAULT_DIR` (notes) from `$PAI_DIR` (runtime) |
+| `ProjectManagement` | Domain-scoped projects + bidirectional task dashboard (`dashboards/TASKS.md`), Obsidian Tasks-compatible status symbols |
+| `DailyRituals` | Weekly planning rituals — week-prep / close / cycle / synthesis layered on SecondBrain's daily layer |
+
+> SecondBrain, ProjectManagement, and DailyRituals operate relative to `$VAULT_DIR` —
+> set it to your Obsidian vault (or run from inside it). `Qmd` and `defuddle` (used by
+> `/ingest-url`) are external CLIs installed via `bun install -g`.
 
 ---
 

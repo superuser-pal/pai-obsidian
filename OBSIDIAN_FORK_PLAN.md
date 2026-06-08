@@ -89,15 +89,20 @@ Audited all 7 source skills before porting. Key conclusions:
 - [x] **3.3** `ObsidianBases` — straight copy incl. `references/`. Zero deps. ✅ 2026-06-08
 - [x] **3.4** `ObsidianCLI` — straight copy. Wraps the `obsidian` CLI (requires Obsidian open) —
   document as a prerequisite; no absolute app paths present. ✅ 2026-06-08
-- [ ] **3.5** `SecondBrain` — depends on `Qmd`. Rewrite ResolveRoot to the `$VAULT_DIR`/`$PAI_DIR`
-  split (spec below). Strip `node_modules/`. Drop the dangling `SECOND_BRAIN_MIGRATION_v2.md`
-  provenance reference (file not in folder). Confirm `defuddle` handling for `/ingest-url`
-  (degrade-with-warning or document).
-- [ ] **3.6** `ProjectManagement` — copy `Workflows/` + `Templates/`. Resolve the template-renderer
-  question (does the workflow fill `{{date}}`/`{{week_number}}` inline, or assume Obsidian
-  Templater?) and document it.
-- [ ] **3.7** `DailyRituals` — copy `Workflows/` + `Templates/`. Same template-renderer note;
-  check for time-zone / personal schedule refs.
+- [x] **3.5** `SecondBrain` — ResolveRoot rewritten to the `$VAULT_DIR`/`$PAI_DIR` split;
+  consumer safety table verified empirically against throwaway anchors (`tsc --noEmit` clean).
+  `node_modules` stripped, dangling provenance dropped, `defuddle` left to the workflow's
+  existing graceful degradation (bun install hint). ✅ 2026-06-08
+- [x] **3.6** `ProjectManagement` — ported. Template-renderer resolved: placeholders are
+  **model-filled inline** (no Templater). Documented `$VAULT_DIR` CWD convention (no Tools/).
+  ✅ 2026-06-08
+- [x] **3.7** `DailyRituals` — ported, same model-fill + `$VAULT_DIR` CWD conventions. ✅ 2026-06-08
+
+**Known follow-up — frontmatter descriptions:** SecondBrain / ProjectManagement / DailyRituals
+SKILL.md `description:` fields still carry repo==vault framing ("PAI vault", "PAI repo root").
+Editing a skill's frontmatter `description` routes through `CreateSkill` per
+`skills/CLAUDE.md` (it has trigger-routing implications), so these were deferred to a
+dedicated CreateSkill pass rather than hand-edited.
 
 **ResolveRoot rewrite spec (3.5) — provably non-breaking:**
 
