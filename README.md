@@ -37,10 +37,10 @@ git clone https://github.com/<your-username>/pai-obsidian.git
 cd pai-obsidian
 
 # 2. Run the installer
-bash Releases/v5.0.0/install.sh
+bash Releases/v5.0.0/.claude/install.sh
 ```
 
-The installer copies `.claude/` to `~/.claude/` and wires 39 skills into Claude Code.
+The installer copies `.claude/` to `~/.claude/` and wires 46 skills into Claude Code (including the 7 Obsidian skills).
 
 ---
 

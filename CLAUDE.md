@@ -7,8 +7,7 @@ pai-obsidian is a lean, Obsidian-focused fork of [danielmiessler/Personal_AI_Inf
 Run the installer to wire `.claude/` into your home directory:
 
 ```bash
-cd Releases/v5.0.0
-bash install.sh
+bash Releases/v5.0.0/.claude/install.sh
 ```
 
 ## Skills
