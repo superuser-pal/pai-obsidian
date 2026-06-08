@@ -247,3 +247,103 @@ Back in `Personal_AI_Infrastructure/`.
 | You add to pai-obsidian | `git push origin obsidian-edition` | pai-obsidian |
 | Pull obsidian updates to private | **selective rsync of skill dirs** (see Phase 6.3) — **never** `git merge obsidian/*` | pai-private |
 | Add personal skill to private | commit directly to `main` | pai-private |
+
+---
+
+# Part Two — Lean + Obsidian-native (post-v1.0.0)
+
+Part one (Phases 1–7) was **additive**: port the Obsidian skills in, scaffold the vault.
+Part two is **shaping**: make the fork actually *be* what its README claims.
+
+**Anchoring finding (2026-06-08):** the README/CLAUDE.md say the fork "strips upstream
+machinery (Pulse, the DA daemon, Forge, RTK)," but the shipped `Releases/v5.0.0/.claude/`
+bundle (78M) still contains all of it — `PAI/PULSE` (6.7M web dashboard + Next.js
+Observability app), `PAI/PAI-Install` (3.7M Electron GUI installer) — and the installed
+operating `CLAUDE.md` still wires in Forge, RTK, Interceptor (mandatory ×3), Pulse,
+ElevenLabs voice (`localhost:31337`), and 4 MODES. The fork is "lean Obsidian-focused" in
+name, ~90% un-stripped PAI in substance. Part two closes that gap — **selectively**, per the
+decisions below (the operator wants to keep Pulse and the installer, not strip them).
+
+### Decisions (2026-06-08)
+
+- **Pulse — KEEP and repurpose (do NOT delete).** The operator wants the web platform to
+  visualize key components of memory (and whatever else) in a different way than Obsidian
+  offers. Future direction: modify Pulse so it reads/visualizes the **vault's** memory
+  (see Phase 11 — if knowledge moves to the vault, Pulse reads the vault instead of
+  `MEMORY/KNOWLEDGE`). Treat Pulse as a custom visualization surface, not dead weight.
+- **Installer — KEEP and Obsidian-orient (do NOT replace).** The operator likes the
+  installer. Modifications to consider: add `$VAULT_DIR` setup + Obsidian plugin install to
+  the wizard; soften the destructive/global behavior (it currently backs-up-and-replaces
+  `~/.claude`, hardcodes the global path, edits four shell rc files, installs a Pulse
+  menubar launchd agent). Also fix: the installer lives at
+  `Releases/v5.0.0/.claude/install.sh` (the root quick-start path bug was fixed 2026-06-08).
+
+### Phase 8 — Lean the operating context + skill set (keep Pulse)
+
+- [ ] **8.1** Rewrite the installed `Releases/v5.0.0/.claude/CLAUDE.md` for knowledge work:
+  strip/soften MODES, Forge auto-include, RTK, Interceptor-mandatory, and the voice curls
+  that don't serve an Obsidian vault. Run the fork's own `BitterPillEngineering` skill on it.
+- [ ] **8.2** Move tangential skills to `Packs/` so the default install is the
+  Thinking + Research + Knowledge + Obsidian core (~20), opt-in for the rest. Candidates to
+  demote from default: `Daemon`, `Sales`, `Webdesign`, `Art`, `AudioEditor`, `Apify`,
+  `Browser`, `CreateCLI`, `Agents`, `Delegation`, `Evals`. (Pulse stays.)
+
+### Phase 9 — Obsidian-native UI (ACCEPTED)
+
+- [ ] **9.1** Ship a configured `.obsidian/` with the vault scaffold:
+  `community-plugins.json` enabling **Tasks**, **Bases** (or Dataview), and optionally
+  **Templater**; a sane `app.json`. (VaultStructure.md already references `.obsidian/app.json`
+  that doesn't exist yet — close that gap.)
+- [ ] **9.2** Dashboards as Obsidian notes: `dashboards/` holds MOC hubs + a live `TASKS.md`
+  rendered by the Tasks plugin (status symbols are already Tasks-compatible).
+- [ ] **9.3** Bases as the database UI: ship starter `.base` files in `bases/` giving
+  table/card/gallery views over `domains/`. Driven by the `ObsidianBases` skill.
+
+### Phase 10 — Obsidian-orient the installer (keep it)
+
+- [ ] **10.1** Add `$VAULT_DIR` prompt + persistence to the wizard; optionally install the
+  Obsidian plugins from 9.1.
+- [ ] **10.2** Make the install less destructive / redirectable: honor `CLAUDE_CONFIG_DIR`,
+  avoid clobbering Claude Code's own `projects/sessions/history`, make the system-wide shell
+  edits + menubar install opt-in.
+
+### Phase 11 — FUTURE CONSIDERATION: collapse to vault-as-single-source-of-truth
+
+**Status: deliberate, plan carefully. Logged 2026-06-08 for future sessions. Not scheduled.**
+
+**The problem.** There are currently **two** knowledge systems running in parallel:
+
+1. **PAI's typed graph** — `$PAI_DIR/PAI/MEMORY/KNOWLEDGE/{People,Companies,Ideas,Research}`,
+   populated by the harvest pipeline (`PAI/TOOLS/KnowledgeHarvester.ts`,
+   `HarvestExecutor.ts`, `SessionHarvester.ts`).
+2. **The Obsidian vault** — `$VAULT_DIR/domains/…` (knowledge as notes).
+
+They are bridged by **SecondBrain's `KnowledgeRipple.ts`**: it extracts `[[Entity]]` wikilinks
+from vault notes → writes frontmatter-only stubs to `MEMORY/KNOWLEDGE/_harvest-queue/<slug>.md`
+→ `KnowledgeHarvester` consumes those into the typed graph. SecondBrain deliberately *never*
+writes the typed graph directly (invariant i8). This rippling is the single biggest remaining
+source of complexity.
+
+**The bet.** Make the **vault the one source of truth**. Typed entities become vault notes
+with `type:` frontmatter (People/Companies/Ideas/Research), queried via **Obsidian Bases**.
+Delete the `_harvest-queue` handoff and the separate `MEMORY/KNOWLEDGE` typed graph. Result:
+single source of truth, no rippling, fully Obsidian-native, Bases as the query/UI layer.
+
+**Why plan carefully — what it touches (audit before doing):**
+- **Rewrites SecondBrain's core** — `KnowledgeRipple.ts`, `ResolveDomain.ts`, and the whole
+  `_harvest-queue` handoff in the workflows (`QuickDump`, `Save`, `Distribute`, `CloseDay`).
+- **Deprecates/repurposes** the `Knowledge` skill (direct CRUD on `MEMORY/KNOWLEDGE`) and the
+  harvest pipeline (`KnowledgeHarvester`, `HarvestExecutor`, `SessionHarvester`).
+- **Downstream readers of `MEMORY/KNOWLEDGE`** must be re-pointed at the vault: audit
+  `Telos`, `ContextSearch`, `MemoryRetriever.ts`, `KnowledgeGraph.ts`, and — critically —
+  **Pulse** (the operator is keeping Pulse and it currently reads `MEMORY`; if knowledge moves
+  to the vault, Pulse must read the vault). **Phase 11 and Pulse-repurposing are linked.**
+- **Data migration** — existing typed-graph entries → vault notes with `type:` frontmatter.
+- **Interacts with the `$VAULT_DIR`/`$PAI_DIR` split** (built in Phase 3.5 assuming the dual
+  model): collapsing changes *where* knowledge lives, though the split itself still holds
+  (vault content vs runtime state).
+
+**Recommended approach when picked up:** start with a dependency audit (grep every reader of
+`MEMORY/KNOWLEDGE`), prototype the Bases-over-`type:`-frontmatter query layer, then migrate
+SecondBrain to write typed vault notes directly — retiring the ripple/harvest path last, once
+Pulse and the other readers are re-pointed.
