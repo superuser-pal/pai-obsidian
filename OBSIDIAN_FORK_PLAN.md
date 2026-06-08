@@ -42,22 +42,90 @@ Three-tier cascade: `danielmiessler/PAI` → `superuser-pal/pai-obsidian` (publi
 **Source:** `~/Documents/GitHub/Personal_AI_Infrastructure/.claude/skills/<Skill>/`
 **Destination:** `Releases/v5.0.0/.claude/skills/<Skill>/` (adds to the installer)
 
+### Pre-flight analysis findings (2026-06-08)
+
+Audited all 7 source skills before porting. Key conclusions:
+
+- **Sanitization is a near no-op.** Swept all 7 skills: **zero** real personal-identifier
+  hits. The single `/Users/` match is a code comment *forbidding* hardcoded paths. The
+  skills were written path-agnostic (git-root-relative). Keep the audit step, but expect it
+  clean every time.
+- **The vault-location model is the one real architectural decision** — resolved below.
+- **`qmd` is an unbundled external CLI** (v2.1.0, `bun install -g qmd`) — shipped as a
+  documented prerequisite, not added to `install.sh`.
+- **The harvest pipeline already exists in the dest** (`PAI/TOOLS/KnowledgeHarvester.ts`),
+  so KnowledgeRipple stubs will be consumed. No gap there.
+- **Missing `MEMORY/` subdirs self-heal** — QueueUpdate / IngestLog / KnowledgeRipple all
+  `mkdirSync(..., { recursive: true })` before first write. Not a blocker.
+
+### Decisions (locked)
+
+- **Vault location → `$VAULT_DIR` + `$PAI_DIR` split.** The source assumes *repo == vault*
+  (`.claude/` sits inside the vault, one git root for everything). The fork installs
+  `.claude/` **globally** into `~/.claude/`, so that assumption breaks. Resolution:
+  vault content resolves from `$VAULT_DIR`; runtime/`MEMORY` state stays anchored to
+  `$PAI_DIR` (`~/.claude`). See the ResolveRoot spec under 3.5.
+- **`qmd` → documented prerequisite.** Add a Prerequisites note (root `CLAUDE.md` + README +
+  Qmd `SKILL.md`): `bun install -g qmd`, set `$VAULT_DIR`. Capture workflows assume qmd present.
+
 **Protocol per skill:**
-1. Copy the folder.
-2. Run sanitization audit: `grep -ri "rodrigo\|canoteran\|superuser\|promptpal\|HOME\|pai-private" Releases/v5.0.0/.claude/skills/<Skill>/`
-3. Replace hits with template variables (`{{YOUR_NAME}}`, `{{VAULT_DIR}}`, `${PAI_DIR}`) or generic relative paths.
+1. Copy the folder — **excluding `node_modules/`** (Qmd and SecondBrain each carry ~29 MB;
+   rely on dest `bun` resolution or run `bun install` in `Tools/`).
+2. Run sanitization audit: `grep -riE "rodrigo|canoteran|superuser|promptpal|/Users/" Releases/v5.0.0/.claude/skills/<Skill>/` (expect clean).
+3. Replace any hits with template variables (`{{YOUR_NAME}}`, `$VAULT_DIR`, `$PAI_DIR`) or generic relative paths.
 4. Verify SKILL.md frontmatter has no personal `author:` or `license:` fields that leak identity.
 5. Commit: `feat(skills): port <Skill> from private fork`
 
 **Port in this exact order (dependency chain):**
 
-- [ ] **3.1** `Qmd` — foundational vault search used by SecondBrain. Hardcodes vault path — must be replaced with `${VAULT_DIR}` env var.
-- [ ] **3.2** `ObsidianMarkdown` — no dependencies. Formatting conventions for Obsidian-flavored MD (callouts, front-matter, wikilinks).
-- [ ] **3.3** `ObsidianBases` — no dependencies. Manages Bases (Obsidian's native database view). Check for any hardcoded base names.
-- [ ] **3.4** `ObsidianCLI` — no dependencies. Wraps `obsidian-cli` or URI scheme commands. Replace any absolute app paths.
-- [ ] **3.5** `SecondBrain` — depends on `Qmd`. Core capture/process/file workflow. Heavy on vault-path refs.
-- [ ] **3.6** `ProjectManagement` — depends on SecondBrain patterns. Check for any project-specific folder names to generalize.
-- [ ] **3.7** `DailyRituals` — depends on SecondBrain + ProjectManagement. Check for time-zone, calendar, or personal schedule refs.
+- [x] **3.0** Pre-flight — copy `commands/qmd/{ask,search,context,reindex}.md` →
+  `Releases/v5.0.0/.claude/commands/qmd/`. The per-skill protocol only copies `skills/<Skill>/`,
+  but Qmd's `SKILL.md` routes to `../commands/qmd/*.md`; without these the routing is dead. ✅ 2026-06-08
+- [x] **3.1** `Qmd` — copy `SKILL.md` + `Tools/` (no `node_modules/`). **Fix `LintFrontmatter.ts`
+  check F4**: it only accepts ISO 8601, but SecondBrain *mandates* `%Y-%m-%d %I:%M %p` local
+  timestamps — F4 currently warns on every compliant note. Align F4 with the mandated format.
+  Add the qmd-prerequisite note. ✅ 2026-06-08 — F4 fix verified (local + ISO pass, garbage warns).
+- [x] **3.2** `ObsidianMarkdown` — straight copy incl. `references/`. Zero deps, zero personal data. ✅ 2026-06-08
+- [x] **3.3** `ObsidianBases` — straight copy incl. `references/`. Zero deps. ✅ 2026-06-08
+- [x] **3.4** `ObsidianCLI` — straight copy. Wraps the `obsidian` CLI (requires Obsidian open) —
+  document as a prerequisite; no absolute app paths present. ✅ 2026-06-08
+- [ ] **3.5** `SecondBrain` — depends on `Qmd`. Rewrite ResolveRoot to the `$VAULT_DIR`/`$PAI_DIR`
+  split (spec below). Strip `node_modules/`. Drop the dangling `SECOND_BRAIN_MIGRATION_v2.md`
+  provenance reference (file not in folder). Confirm `defuddle` handling for `/ingest-url`
+  (degrade-with-warning or document).
+- [ ] **3.6** `ProjectManagement` — copy `Workflows/` + `Templates/`. Resolve the template-renderer
+  question (does the workflow fill `{{date}}`/`{{week_number}}` inline, or assume Obsidian
+  Templater?) and document it.
+- [ ] **3.7** `DailyRituals` — copy `Workflows/` + `Templates/`. Same template-renderer note;
+  check for time-zone / personal schedule refs.
+
+**ResolveRoot rewrite spec (3.5) — provably non-breaking:**
+
+`paths.root` / `resolveRoot()` is consumed in exactly three places, all meaning *vault root*
+(`ResolveDomain` `join(root,"domains")`, `KnowledgeRipple` `relative(paths.root, notePath)`,
+`QmdUpdate` `filePath.startsWith(root)`). The five `memory*` fields are consumed in isolation
+(QueueUpdate→`memoryState`, IngestLog→`memoryObservability`, KnowledgeRipple→`memoryHarvestQueue`);
+no consumer ever mixes a `memory*` path with `root`. Therefore:
+
+- `resolveRoot()` → returns **vault root**: `$VAULT_DIR` (or `$OBSIDIAN_VAULT`), fallback to
+  `git rev-parse --show-toplevel`, else throw with a helpful message. *All three vault
+  consumers stay byte-for-byte correct.*
+- Add internal `resolvePaiDir()` → `$PAI_DIR` (fallback `${HOME}/.claude`).
+- Rebase only the five `memory*` fields in `vaultPaths()` from `${root}/.claude/PAI/MEMORY/...`
+  to `${paiDir}/PAI/MEMORY/...`. *Vault fields (`inboxRaw`…`bases`) and `root` stay derived
+  from vault root — unchanged.*
+
+| Consumer | Field used | After split | Breaks? |
+|---|---|---|---|
+| ResolveDomain | `resolveRoot()` (vault) | vault root | no |
+| QmdUpdate | `resolveRoot()` (vault) | vault root | no |
+| KnowledgeRipple | `paths.root` + `memoryHarvestQueue` | vault root + `$PAI_DIR` | no |
+| QueueUpdate | `memoryState` | `$PAI_DIR` | no |
+| IngestLog | `memoryObservability` | `$PAI_DIR` | no |
+
+**Carry-forward to Phase 4:** the per-folder `.gitignore` must respect the skills'
+tracked/ignored model from `SecondBrain/References/VaultStructure.md` — `domains/` and `plan/`
+**tracked**, `inbox/` and `thinking/` **ignored** — not a blanket `*` rule.
 
 **After all 7 ported:** update the Obsidian group in the root `CLAUDE.md` skills table (Phase 2.3 step 3).
 
