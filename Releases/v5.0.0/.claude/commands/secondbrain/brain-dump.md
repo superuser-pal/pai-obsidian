@@ -12,4 +12,4 @@ Invoke the SecondBrain skill's BrainDump workflow:
 Skill("SecondBrain", "BrainDump: $ARGUMENTS")
 ```
 
-Workflow: [.claude/skills/SecondBrain/Workflows/BrainDump.md](../skills/SecondBrain/Workflows/BrainDump.md)
+Workflow: [.claude/skills/SecondBrain/Workflows/BrainDump.md](../../skills/SecondBrain/Workflows/BrainDump.md)

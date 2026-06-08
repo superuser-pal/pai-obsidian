@@ -12,4 +12,4 @@ Invoke the SecondBrain skill's IngestUrl workflow:
 Skill("SecondBrain", "IngestUrl: $ARGUMENTS")
 ```
 
-Workflow: [.claude/skills/SecondBrain/Workflows/IngestUrl.md](../skills/SecondBrain/Workflows/IngestUrl.md)
+Workflow: [.claude/skills/SecondBrain/Workflows/IngestUrl.md](../../skills/SecondBrain/Workflows/IngestUrl.md)

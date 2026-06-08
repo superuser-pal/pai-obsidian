@@ -12,4 +12,4 @@ Invoke the SecondBrain skill's Process workflow:
 Skill("SecondBrain", "Process: $ARGUMENTS")
 ```
 
-Workflow: [.claude/skills/SecondBrain/Workflows/Process.md](../skills/SecondBrain/Workflows/Process.md)
+Workflow: [.claude/skills/SecondBrain/Workflows/Process.md](../../skills/SecondBrain/Workflows/Process.md)

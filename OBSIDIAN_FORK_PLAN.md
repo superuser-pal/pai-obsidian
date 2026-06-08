@@ -141,9 +141,11 @@ DailyRituals, and ProjectManagement also ship slash-command wrappers that route 
 workflows — these were missed, leaving the documented `/capture`, `/process`, `/week-prep`,
 `/task-sync` entry points unreachable. Caught during the user-journeys analysis (see
 `OBSIDIAN_USER_JOURNEYS.md` P0-1) and fixed in commit `4d7a4e7`: 17 command files ported —
-SecondBrain (10, root), DailyRituals (`rituals/`, 3), ProjectManagement (`manage/`, 4). Open
-follow-up: subdir namespacing makes them `/rituals:week-prep` not the bare `/week-prep` the
-SKILL.md tables document — flatten or update the docs.
+17 command files ported, then organized into per-skill folders: `secondbrain/` (10), `rituals/`
+(3), `manage/` (4), alongside the existing `qmd/` (4). Verified against the official Claude Code
+docs that **subdirectories do NOT namespace** — every command invokes as its bare name
+(`/open-day`, `/week-prep`, `/task-sync`, `/ask`) regardless of folder, and there are no basename
+collisions. (An interim note here wrongly claimed `/rituals:week-prep` namespacing; corrected.)
 
 ---
 

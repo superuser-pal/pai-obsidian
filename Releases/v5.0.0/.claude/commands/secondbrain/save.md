@@ -12,4 +12,4 @@ Invoke the SecondBrain skill's Save workflow:
 Skill("SecondBrain", "Save: $ARGUMENTS")
 ```
 
-Workflow: [.claude/skills/SecondBrain/Workflows/Save.md](../skills/SecondBrain/Workflows/Save.md)
+Workflow: [.claude/skills/SecondBrain/Workflows/Save.md](../../skills/SecondBrain/Workflows/Save.md)

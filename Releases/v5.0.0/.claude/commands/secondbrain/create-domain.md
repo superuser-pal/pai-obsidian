@@ -12,4 +12,4 @@ Invoke the SecondBrain skill's CreateDomain workflow:
 Skill("SecondBrain", "CreateDomain: $ARGUMENTS")
 ```
 
-Workflow: [.claude/skills/SecondBrain/Workflows/CreateDomain.md](../skills/SecondBrain/Workflows/CreateDomain.md)
+Workflow: [.claude/skills/SecondBrain/Workflows/CreateDomain.md](../../skills/SecondBrain/Workflows/CreateDomain.md)

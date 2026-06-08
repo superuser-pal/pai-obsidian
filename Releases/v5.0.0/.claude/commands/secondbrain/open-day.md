@@ -12,4 +12,4 @@ Invoke the SecondBrain skill's OpenDay workflow:
 Skill("SecondBrain", "OpenDay: $ARGUMENTS")
 ```
 
-Workflow: [.claude/skills/SecondBrain/Workflows/OpenDay.md](../skills/SecondBrain/Workflows/OpenDay.md)
+Workflow: [.claude/skills/SecondBrain/Workflows/OpenDay.md](../../skills/SecondBrain/Workflows/OpenDay.md)

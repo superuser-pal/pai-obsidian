@@ -12,4 +12,4 @@ Invoke the SecondBrain skill's QuickDump workflow:
 Skill("SecondBrain", "QuickDump: $ARGUMENTS")
 ```
 
-Workflow: [.claude/skills/SecondBrain/Workflows/QuickDump.md](../skills/SecondBrain/Workflows/QuickDump.md)
+Workflow: [.claude/skills/SecondBrain/Workflows/QuickDump.md](../../skills/SecondBrain/Workflows/QuickDump.md)

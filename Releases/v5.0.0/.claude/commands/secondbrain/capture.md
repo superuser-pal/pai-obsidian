@@ -12,4 +12,4 @@ Invoke the SecondBrain skill's Capture workflow:
 Skill("SecondBrain", "Capture: $ARGUMENTS")
 ```
 
-Workflow: [.claude/skills/SecondBrain/Workflows/Capture.md](../skills/SecondBrain/Workflows/Capture.md)
+Workflow: [.claude/skills/SecondBrain/Workflows/Capture.md](../../skills/SecondBrain/Workflows/Capture.md)

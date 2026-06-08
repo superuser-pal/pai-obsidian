@@ -12,4 +12,4 @@ Invoke the SecondBrain skill's Distribute workflow:
 Skill("SecondBrain", "Distribute: $ARGUMENTS")
 ```
 
-Workflow: [.claude/skills/SecondBrain/Workflows/Distribute.md](../skills/SecondBrain/Workflows/Distribute.md)
+Workflow: [.claude/skills/SecondBrain/Workflows/Distribute.md](../../skills/SecondBrain/Workflows/Distribute.md)

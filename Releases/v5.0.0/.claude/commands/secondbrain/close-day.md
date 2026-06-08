@@ -12,4 +12,4 @@ Invoke the SecondBrain skill's CloseDay workflow:
 Skill("SecondBrain", "CloseDay: $ARGUMENTS")
 ```
 
-Workflow: [.claude/skills/SecondBrain/Workflows/CloseDay.md](../skills/SecondBrain/Workflows/CloseDay.md)
+Workflow: [.claude/skills/SecondBrain/Workflows/CloseDay.md](../../skills/SecondBrain/Workflows/CloseDay.md)
