@@ -187,19 +187,43 @@ desired (audit `PAI/USER/*` are all placeholders, no real data), but it is not a
 
 Back in `Personal_AI_Infrastructure/`.
 
-- [ ] **6.1** Test the sync flow:
+- [x] **6.1** Test the sync flow ✅ 2026-06-08. `obsidian` remote fetches cleanly; after pushing
+  `obsidian-edition`, the private fork sees all 22 public-fork commits via
+  `git log HEAD..obsidian/obsidian-edition`. (Fixed: 6.1 originally referenced `obsidian/main`;
+  the canonical sync branch is `obsidian-edition`.)
+
+- [x] **6.2** Verify personal-only vs inherited skills ✅ 2026-06-08. Clean partition:
+  **6 personal-only** (`ArXiv`, `BrightData`, `Interceptor`, `PAIUpgrade`, `PrivateInvestigator`,
+  `Remotion` — the Phase 2.1 removals), **46 shared**, **0 public-only**.
+
+- [x] **6.3** Document the ongoing sync command ✅ 2026-06-08 — **and corrected a dangerous one.**
+
+  > ⛔ **DO NOT `git merge obsidian/obsidian-edition` into the private fork.** A merge preview
+  > (`git merge-tree`) shows it would change 9,111 files with ~1.74M deletions and hundreds of
+  > rename/delete conflicts. The two forks store the same skills at **different paths** with
+  > **divergent histories**: public = `Releases/v5.0.0/.claude/skills/`, private = `.claude/skills/`
+  > (private has no `Releases/`). A full-tree merge tries to reconcile them and guts the private repo.
+
+  **Correct sync = selective, file-level adoption** of the specific skill dirs you want. Both repos
+  are checked out locally, so the simplest safe path is `rsync` from the public release into the
+  private runtime, then review + commit:
+
   ```bash
-  git fetch obsidian
-  git log obsidian/main..HEAD
-  git log HEAD..obsidian/main
-  ```
-- [ ] **6.2** Verify personal-only skills are clearly separated from inherited skills.
-- [ ] **6.3** Document the ongoing sync command:
-  ```bash
-  git fetch obsidian
-  git merge obsidian/obsidian-edition
+  cd ~/Documents/GitHub/Personal_AI_Infrastructure
+  git fetch obsidian                      # keeps remote-tracking refs current (optional, for diffing)
+
+  # Adopt the Obsidian skills you want (review each diff first — this OVERWRITES local copies):
+  PUB=~/Documents/GitHub/pai-obsidian/Releases/v5.0.0/.claude/skills
+  for s in Qmd ObsidianMarkdown ObsidianBases ObsidianCLI SecondBrain ProjectManagement DailyRituals; do
+    rsync -an --exclude node_modules "$PUB/$s/" ".claude/skills/$s/"   # -n = DRY RUN; inspect first
+  done
+  # drop the -n once the dry-run looks right, then:
+  git add .claude/skills && git commit -m "sync: adopt Obsidian skill updates from pai-obsidian"
   git push origin main
   ```
+
+  Note: the ported skills' `$VAULT_DIR` split keeps a git-root fallback, so adopting them in the
+  private fork is backward-compatible even if you still run private in repo==vault mode.
 
 ---
 
@@ -221,5 +245,5 @@ Back in `Personal_AI_Infrastructure/`.
 |---|---|---|
 | PAI upstream releases | `git fetch upstream && git merge upstream/main` | pai-obsidian |
 | You add to pai-obsidian | `git push origin obsidian-edition` | pai-obsidian |
-| Pull obsidian updates to private | `git fetch obsidian && git merge obsidian/obsidian-edition` | pai-private |
+| Pull obsidian updates to private | **selective rsync of skill dirs** (see Phase 6.3) — **never** `git merge obsidian/*` | pai-private |
 | Add personal skill to private | commit directly to `main` | pai-private |
