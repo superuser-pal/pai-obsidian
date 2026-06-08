@@ -165,62 +165,21 @@ Each folder contains only `.gitkeep` + a `.gitignore` that prevents personal not
 
 ---
 
-## Phase 5 — USER scaffold templates
+## Phase 5 — USER scaffold templates — ❌ OBSOLETE (dropped 2026-06-08)
 
-**Goal:** provide fill-in-the-blank identity files so the fork works as a starting point without leaking personal data. `USER/` does not currently exist in this repo — create it from scratch.
+**Why dropped:** Phase 5 would have created a *second* identity system at the repo root
+(`USER/PRINCIPAL_IDENTITY.md`, `USER/DA_IDENTITY.md`, `USER/TELOS/...`) wired into the root
+`CLAUDE.md`. The installed product already ships a complete one: `Releases/v5.0.0/.claude/PAI/USER/`
+contains `PRINCIPAL_IDENTITY.md`, `DA_IDENTITY.md`, `TELOS/PRINCIPAL_TELOS.md` (and 17 more) as
+fill-in-the-blank bootstrap templates, the installed `.claude/CLAUDE.md` already `@`-imports them
+(lines 6–9), and the `/interview` skill exists to populate them. Building Phase 5 would have
+duplicated identity in one repo (drift risk) and loaded a personal DA persona into the *root*
+CLAUDE.md — the fork's development/operating context — where identity doesn't belong. Identity
+lives in the runtime (`PAI/USER/`), which is already solved.
 
-- [ ] **5.1** Create `USER/PRINCIPAL_IDENTITY.md` — who the human is:
-  ```markdown
-  ---
-  name: {{YOUR_NAME}}
-  role: {{YOUR_ROLE}}
-  ---
-
-  # Principal Identity
-
-  **Name:** {{YOUR_NAME}}
-  **Role / title:** {{YOUR_ROLE}}
-  **Primary goals:** {{YOUR_GOALS}}
-  **Communication style:** {{DIRECT|COLLABORATIVE|FORMAL}}
-  ```
-
-- [ ] **5.2** Create `USER/DA_IDENTITY.md` — the digital assistant persona:
-  ```markdown
-  ---
-  name: {{DA_NAME}}
-  ---
-
-  # Digital Assistant Identity
-
-  **Name:** {{DA_NAME}}
-  **Personality:** {{DESCRIBE_TONE}}
-  **Specialization:** Obsidian-based knowledge management and personal productivity.
-  ```
-
-- [ ] **5.3** Create `USER/TELOS/PRINCIPAL_TELOS.md` — purpose and values template:
-  ```markdown
-  # Principal Telos
-
-  ## Mission
-  {{YOUR_MISSION_STATEMENT}}
-
-  ## Core values
-  - {{VALUE_1}}
-  - {{VALUE_2}}
-
-  ## Current focus areas
-  - {{FOCUS_1}}
-  - {{FOCUS_2}}
-  ```
-
-- [ ] **5.4** Create `USER/.gitignore`:
-  ```
-  *
-  !.gitignore
-  ```
-  This makes `USER/` effectively invisible to git so private forks can drop real identity files here without risk of committing them. The template files in 5.1–5.3 are committed because they're tracked before the `.gitignore` is created — add them first, then add the `.gitignore` in a separate commit.
-
-- [ ] **5.5** Add `@USER/PRINCIPAL_IDENTITY.md` and `@USER/DA_IDENTITY.md` imports to the top of root `CLAUDE.md` (back-fill from 2.3, once USER/ files exist).
+The one genuinely useful idea here — a "never commit personal identity" gitignore firewall —
+applies to the *existing* `PAI/USER/`, not a new folder. Capture it as a verification task if
+desired (audit `PAI/USER/*` are all placeholders, no real data), but it is not a scaffold-build.
 
 ---
 
