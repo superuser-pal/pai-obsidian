@@ -1,11 +1,11 @@
 ---
 name: ProjectManagement
-description: "Create, track, sync, and archive domain-scoped projects across the PAI vault. Owns ProjectCreate (scaffold domains/[name]/01_PROJECTS/PROJECT_*.md with goal, priority, tasks), TaskSync (scan all domain projects + ad-hoc files → aggregate into dashboards/TASKS.md with #Domain/ProjectName source tags), UpdateTasks (push checkbox edits from TASKS.md back to source files via source-tag routing, conflict-aware), ArchiveProject (per-domain archive to domains/[name]/03_ARCHIVE/ + WINS.md entry with correct wikilink). Status symbols are Obsidian Tasks compatible: [ ] open, [/] in-progress, [!] blocked, [?] paused, [I] backlog, [-] dropped, [x] done. USE WHEN project-create, new project in domain, task-sync, pull tasks, aggregate tasks, push tasks, update tasks dashboard, archive project, close project, complete project, task dashboard. NOT FOR weekly planning rituals (use DailyRituals) or daily plan opening/closing (use SecondBrain OpenDay/CloseDay)."
+description: "Create, track, sync, and archive domain-scoped projects across an Obsidian vault ($VAULT_DIR). Owns ProjectCreate (scaffold domains/[name]/01_PROJECTS/PROJECT_*.md with goal, priority, tasks), TaskSync (scan all domain projects + ad-hoc files → aggregate into dashboards/TASKS.md with #Domain/ProjectName source tags), UpdateTasks (push checkbox edits from TASKS.md back to source files via source-tag routing, conflict-aware), ArchiveProject (per-domain archive to domains/[name]/03_ARCHIVE/ + WINS.md entry with correct wikilink). Status symbols are Obsidian Tasks compatible: [ ] open, [/] in-progress, [!] blocked, [?] paused, [I] backlog, [-] dropped, [x] done. USE WHEN project-create, new project in domain, task-sync, pull tasks, aggregate tasks, push tasks, update tasks dashboard, archive project, close project, complete project, task dashboard. NOT FOR weekly planning rituals (use DailyRituals) or daily plan opening/closing (use SecondBrain OpenDay/CloseDay)."
 ---
 
 # ProjectManagement — domain projects + task dashboard
 
-This skill owns the project-and-task layer of the PAI vault. Projects live
+This skill owns the project-and-task layer of the vault. Projects live
 per-domain at `domains/[name]/01_PROJECTS/PROJECT_*.md`; ad-hoc tasks live
 beside them in `AD_HOC_TASKS.md`; the bidirectional dashboard lives at
 `dashboards/TASKS.md`.
