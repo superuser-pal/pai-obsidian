@@ -36,6 +36,19 @@ const CWD_SLUG = CLAUDE_DIR.replace(/[\/\.]/g, "-");
 const PROJECTS_DIR = path.join(CLAUDE_DIR, "projects", CWD_SLUG);
 const LEARNING_DIR = path.join(CLAUDE_DIR, "PAI", "MEMORY", "LEARNING");
 
+// Phase 11 — vault as single source of truth. `--mine` candidates are
+// unreviewed, so they land in the vault's inbox/ready/ review queue (as typed
+// .md stubs) instead of the old PAI/MEMORY/KNOWLEDGE/_harvest-queue (.json the
+// harvester never consumed). From inbox/ready a /distribute pass files them and
+// ripples their entities. Resolve the vault root; null → mining still summarizes
+// but cannot stage stubs (warned at call site).
+function resolveVaultRoot(): string | null {
+  const v = process.env.VAULT_DIR ?? process.env.OBSIDIAN_VAULT;
+  return v && v.trim() ? v.trim().replace(/\/+$/, "") : null;
+}
+const VAULT_ROOT = resolveVaultRoot();
+const INBOX_READY_DIR = VAULT_ROOT ? path.join(VAULT_ROOT, "inbox", "ready") : "";
+
 // Patterns indicating learning moments in conversations
 const CORRECTION_PATTERNS = [
   /actually,?\s+/i,
@@ -383,32 +396,57 @@ function confidenceIcon(c: number): string {
   return "\u{1F534}";                  // red circle
 }
 
-const HARVEST_QUEUE_DIR = path.join(CLAUDE_DIR, "PAI", "MEMORY", "KNOWLEDGE", "_harvest-queue");
+/** Local timestamp `YYYY-MM-DD HH:MM AM/PM` — the fork's frontmatter contract. */
+function localTimestamp(d = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  let h = d.getHours();
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(h)}:${pad(d.getMinutes())} ${ampm}`;
+}
 
-function writeToQueue(mem: MinedMemory): string {
-  if (!fs.existsSync(HARVEST_QUEUE_DIR)) {
-    fs.mkdirSync(HARVEST_QUEUE_DIR, { recursive: true });
+// Stage a mined memory into the vault's inbox/ready/ review queue as a typed
+// .md stub. It is unreviewed, so it stops at inbox/ready — a /distribute pass
+// files it into domains/ and ripples its entities. Returns the written path,
+// or null if no vault is configured.
+function writeMinedToInbox(mem: MinedMemory): string | null {
+  if (!INBOX_READY_DIR) return null;
+  if (!fs.existsSync(INBOX_READY_DIR)) {
+    fs.mkdirSync(INBOX_READY_DIR, { recursive: true });
   }
 
   const now = new Date();
   const ts = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const sessionShort = mem.sessionId.slice(0, 8);
-  const filename = `mine_${ts}_${mem.memoryType}_${sessionShort}_L${mem.sourceLine}.json`;
-  const filepath = path.join(HARVEST_QUEUE_DIR, filename);
+  const filename = `mine_${ts}_${mem.memoryType}_${sessionShort}_L${mem.sourceLine}.md`;
+  const filepath = path.join(INBOX_READY_DIR, filename);
 
-  const candidate = {
-    title: `${mem.memoryType}: ${mem.content.substring(0, 60)}...`,
-    content: `## ${mem.memoryType.charAt(0).toUpperCase() + mem.memoryType.slice(1)}\n\n${mem.content}\n\n## Context\n\n${mem.context}`,
-    domain: "Ideas",
-    type: "idea",
-    tags: [mem.memoryType, "mined"],
-    confidence: mem.confidence,
-    sourcePattern: mem.sourcePattern,
-    sourcePath: mem.sessionId,
-    minedAt: now.toISOString(),
-  };
+  const title = `${mem.memoryType}: ${mem.content.substring(0, 60)}`;
+  const heading = mem.memoryType.charAt(0).toUpperCase() + mem.memoryType.slice(1);
+  const note = [
+    "---",
+    "type: idea",
+    `created: ${localTimestamp(now)}`,
+    "source: mine",
+    `discovered: ${localTimestamp(now)}`,
+    `tags: [${mem.memoryType}, mined]`,
+    `confidence: ${mem.confidence}`,
+    `mined_from: ${mem.sessionId}`,
+    "pending-classification: true",
+    "---",
+    `# ${title}`,
+    "",
+    `## ${heading}`,
+    "",
+    mem.content,
+    "",
+    "## Context",
+    "",
+    mem.context,
+    "",
+  ].join("\n");
 
-  fs.writeFileSync(filepath, JSON.stringify(candidate, null, 2));
+  fs.writeFileSync(filepath, note);
   return filepath;
 }
 
@@ -533,22 +571,29 @@ if (sessionFiles.length === 0) {
 // Mining mode
 if (values.mine) {
   console.log(`\u{1F50D} Mining ${sessionFiles.length} session(s) for memory candidates...`);
+  if (!values["dry-run"] && !INBOX_READY_DIR) {
+    console.warn(
+      "  ⚠ $VAULT_DIR not set — candidates will be summarized but not staged. " +
+      "Set $VAULT_DIR to stage stubs into inbox/ready/."
+    );
+  }
   let totalMined = 0;
+  let totalStaged = 0;
   for (const session of sessionFiles) {
     const memories = mineMemories(session);
     if (memories.length === 0) continue;
     console.log(`\n\u{1F4CB} ${path.basename(session, '.jsonl').slice(0, 8)}: ${memories.length} candidate(s)`);
     for (const mem of memories) {
       if (!values["dry-run"]) {
-        writeToQueue(mem);
+        if (writeMinedToInbox(mem)) totalStaged++;
       }
       console.log(`  ${confidenceIcon(mem.confidence)} [${mem.memoryType}] ${mem.content.substring(0, 80)}... (${(mem.confidence * 100).toFixed(0)}%)`);
       totalMined++;
     }
   }
-  console.log(`\n\u{2705} ${totalMined} candidate(s) ${values["dry-run"] ? "found (dry run)" : "queued for review"}`);
-  if (!values["dry-run"] && totalMined > 0) {
-    console.log(`  Review: bun KnowledgeHarvester.ts harvest --source queue`);
+  console.log(`\n\u{2705} ${totalMined} candidate(s) ${values["dry-run"] ? "found (dry run)" : `mined, ${totalStaged} staged to inbox/ready/`}`);
+  if (!values["dry-run"] && totalStaged > 0) {
+    console.log(`  Review + file: /distribute  (routes inbox/ready → domains/, ripples entities)`);
   }
   process.exit(0);
 }
