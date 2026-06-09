@@ -1,16 +1,21 @@
 ---
 name: Knowledge
-description: "Manage the PAI Knowledge Archive — a curated, typed graph of notes across four entity domains: People, Companies, Ideas, and Research. Operations: search (3-pass: lexical + frontmatter + wikilink), add (creates note with mandatory typed cross-links), harvest (KnowledgeHarvester pulls from PAI sources), develop (surfaces seedling notes for enrichment), ingest (fetch URL or file, create primary note, ripple updates to related notes), contradictions (find conflicting claims via tag-overlap pairs), graph (stats or 2-hop traversal via KnowledgeGraph.ts), retrieve (BM25-lite compressed context via MemoryRetriever.ts), mine (SessionHarvester extracts memory candidates from recent conversations). Every note ships with typed related: frontmatter links (8 relationship types: supports, contradicts, extends, part-of, instance-of, caused-by, preceded-by, related). USE WHEN knowledge, knowledge base, search knowledge, what do we know about, archive, harvest, knowledge status, develop note, add to knowledge, ingest, contradictions, knowledge graph, graph, retrieve, mine conversations. NOT FOR session/ISA context recovery (use ContextSearch)."
-argument-hint: [search|add|harvest|develop|ingest|contradictions|graph|retrieve|mine|<query>]
+description: "Manage the vault Knowledge graph — typed entity notes (type: person, company, idea, research) living in the Obsidian vault under $VAULT_DIR/domains/**, queried via bases/Knowledge.base. (Phase 11: the vault is the single source of truth; there is no separate PAI/MEMORY/KNOWLEDGE graph.) Operations: search (3-pass: lexical + frontmatter + wikilink), add (creates a typed note with mandatory cross-links), develop (surfaces seedling notes for enrichment), ingest (fetch URL or file, create primary note, ripple updates to related notes), contradictions (find conflicting claims via tag-overlap pairs), graph (stats or 2-hop traversal via KnowledgeGraph.ts), retrieve (BM25-lite compressed context via MemoryRetriever.ts), mine (SessionHarvester stages memory candidates into inbox/ready/ for review). Every note ships with typed related: frontmatter links (8 relationship types: supports, contradicts, extends, part-of, instance-of, caused-by, preceded-by, related). USE WHEN knowledge, knowledge base, search knowledge, what do we know about, archive, knowledge status, develop note, add to knowledge, ingest, contradictions, knowledge graph, graph, retrieve, mine conversations. NOT FOR session/ISA context recovery (use ContextSearch)."
+argument-hint: [search|add|develop|ingest|contradictions|graph|retrieve|mine|<query>]
 effort: low
 context: fork
 ---
 
 # Knowledge Skill
 
-Manage the PAI Knowledge Archive at `~/.claude/PAI/MEMORY/KNOWLEDGE/`.
+Manage the vault Knowledge graph. Entities are notes carrying `type: person|company|idea|research`
+frontmatter, living anywhere under `$VAULT_DIR/domains/` (default landing folder
+`$VAULT_DIR/domains/Knowledge/`). The `type:` frontmatter — not the folder — makes a note part
+of the graph. (Phase 11: the vault is the single source of truth; there is no separate
+`PAI/MEMORY/KNOWLEDGE` typed graph.)
 
-**Archive schema:** `~/.claude/PAI/MEMORY/KNOWLEDGE/_schema.md`
+**Schema + query layer:** `$VAULT_DIR/bases/Knowledge.base` (table/card views grouped by type;
+the file header documents the canonical entity-note frontmatter).
 
 ## Command Routing
 
@@ -19,8 +24,7 @@ Manage the PAI Knowledge Archive at `~/.claude/PAI/MEMORY/KNOWLEDGE/`.
 | `/knowledge` (no args) | **status** | Health dashboard |
 | `/knowledge <query>` | **search** | Search for notes matching query |
 | `/knowledge search <query>` | **search** | Explicit search |
-| `/knowledge add <type>` | **add** | Create a new note (People, Companies, or Ideas) |
-| `/knowledge harvest` | **harvest** | Run KnowledgeHarvester on all sources |
+| `/knowledge add <type>` | **add** | Create a new typed entity note |
 | `/knowledge develop` | **develop** | Surface seedlings and enrich them |
 | `/knowledge ingest <url-or-file>` | **ingest** | Read source, create note, ripple updates to related notes |
 | `/knowledge contradictions` | **contradictions** | Find and review conflicting claims across notes |
@@ -42,10 +46,9 @@ bun ~/.claude/PAI/TOOLS/KnowledgeHarvester.ts status
 ```
 
 Also show:
-- Quick summary of domains with note counts
+- Quick summary of types with note counts
 - Any orphan wikilinks
 - Any stale seedlings
-- Time since last harvest
 
 Present in NATIVE mode.
 
@@ -57,17 +60,17 @@ Search the Knowledge Archive for notes matching `$ARGUMENTS`.
 
 **Step 1 — Lexical search:**
 ```bash
-rg -i "$ARGUMENTS" ~/.claude/PAI/MEMORY/KNOWLEDGE/ --type md -l
+rg -i "$ARGUMENTS" "$VAULT_DIR/domains/" --type md -l
 ```
 
 **Step 2 — Frontmatter search (tags and titles):**
 ```bash
-rg -i "title:.*$ARGUMENTS|tags:.*$ARGUMENTS" ~/.claude/PAI/MEMORY/KNOWLEDGE/ --type md -l
+rg -i "title:.*$ARGUMENTS|tags:.*$ARGUMENTS" "$VAULT_DIR/domains/" --type md -l
 ```
 
 **Step 3 — Wikilink search:**
 ```bash
-rg "\[\[.*$ARGUMENTS.*\]\]" ~/.claude/PAI/MEMORY/KNOWLEDGE/ --type md -l
+rg "\[\[.*$ARGUMENTS.*\]\]" "$VAULT_DIR/domains/" --type md -l
 ```
 
 Deduplicate results across all three. For each match, read the first 5 lines of frontmatter to show title, domain, status, tags.
@@ -77,7 +80,7 @@ Present results as a table:
 | Note | Domain | Status | Tags | Relevance |
 ```
 
-If no results found, say so and suggest checking the full MEMORY/ system or running a harvest.
+If no results found, say so and suggest broadening the query or capturing the entity via SecondBrain (`/save`, `/distribute`).
 
 ---
 
@@ -89,19 +92,16 @@ Create a new note manually in the specified entity type.
 2. Ask for a title (or use remaining args after type)
 3. Generate kebab-case filename from title
 4. **MANDATORY: Find 2-3 related notes first.** Before writing the new note, grep existing Knowledge for related entities by topic/tags/name. This becomes the `related:` frontmatter array. No Knowledge note ships without typed links. See Canonical Linking Requirement below.
-5. Create the note with proper frontmatter from `_schema.md` — schemas require: `title`, `type`, `tags` (min 1), `created`, `updated`, `quality` (0-10), plus type-specific body sections.
-6. Write the file to `KNOWLEDGE/<Type>/<kebab-case-title>.md` — slug max 60 chars
-7. Verify every slug in `related:` exists in the archive before saving
-8. Regenerate the type's MOC:
-```bash
-bun ~/.claude/PAI/TOOLS/KnowledgeHarvester.ts index
-```
+5. Create the note with the canonical entity frontmatter (see `bases/Knowledge.base` header): `type` (person|company|idea|research), `created` (local `YYYY-MM-DD HH:MM AM/PM`), `source`, `tags` (min 1), `quality` (0-10), optional `related:`, plus a `# Title` heading and body sections.
+6. Write the file to `$VAULT_DIR/domains/Knowledge/<kebab-case-title>.md` — slug max 60 chars (or any `domains/` subfolder; the `type:` is what matters)
+7. Verify every slug in `related:` exists in the vault before saving
+8. No MOC step — `bases/Knowledge.base` indexes the note automatically by `type:`.
 
 **Topic is a tag, not a type.** A security insight is an Idea with a `security` tag. A security company is a Company with a `security` tag. The entity type determines the schema; the tag determines the topic.
 
 ## Canonical Linking Requirement (MANDATORY)
 
-**Every new Knowledge note must ship with typed cross-links.** This is not optional. The architecture is defined in `MEMORY/KNOWLEDGE/Ideas/pai-knowledge-linking-architecture.md` (quality 9) and the schema in `_schema.md`.
+**Every new Knowledge note must ship with typed cross-links.** This is not optional. The canonical entity frontmatter (including `related:`) is documented in the `$VAULT_DIR/bases/Knowledge.base` header.
 
 **Every write must include:**
 
@@ -133,13 +133,13 @@ related:
 **How to find related notes before writing:**
 ```bash
 # By topic/keyword
-rg -l "TOPIC" ~/.claude/PAI/MEMORY/KNOWLEDGE/ --type md
+rg -l "TOPIC" "$VAULT_DIR/domains/" --type md
 
 # By tag overlap
-rg "^tags:.*TAG" ~/.claude/PAI/MEMORY/KNOWLEDGE/ --type md -l
+rg "^tags:.*TAG" "$VAULT_DIR/domains/" --type md -l
 
 # For People/Companies — grep by name
-rg -l "Person Name" ~/.claude/PAI/MEMORY/KNOWLEDGE/
+rg -l "Person Name" "$VAULT_DIR/domains/"
 ```
 
 **Enforcement:**
@@ -150,17 +150,13 @@ rg -l "Person Name" ~/.claude/PAI/MEMORY/KNOWLEDGE/
 
 ---
 
-## harvest
+## harvest (deprecated)
 
-Run the KnowledgeHarvester to pull new knowledge from all PAI sources:
+Phase 11 removed the intake harvester. Entity notes are now created by:
+- **SecondBrain capture → `/distribute`** — ripples `[[entities]]` into the vault, or
+- **`/knowledge mine`** (SessionHarvester) — stages candidates into `inbox/ready/` for a `/distribute` pass.
 
-```bash
-bun ~/.claude/PAI/TOOLS/KnowledgeHarvester.ts harvest
-```
-
-Display results. If nothing was harvested, explain that sources are already up to date.
-
-Optionally accept `--source` filter: `/knowledge harvest work` or `/knowledge harvest memory`.
+There is no separate `MEMORY/KNOWLEDGE` graph to harvest into. If invoked, report this and point to the flows above.
 
 ---
 
@@ -170,7 +166,7 @@ The weekly gardening workflow. Surface seedling notes that are ready for enrichm
 
 **Step 1 — Find seedlings:**
 ```bash
-rg "^status: seedling" ~/.claude/PAI/MEMORY/KNOWLEDGE/ --type md -l
+rg "^status: seedling" "$VAULT_DIR/domains/" --type md -l
 ```
 
 **Step 2 — For each seedling:**
@@ -185,9 +181,8 @@ rg "^status: seedling" ~/.claude/PAI/MEMORY/KNOWLEDGE/ --type md -l
 - Write the updated note
 - Promote status from `seedling` to `budding` (or `evergreen` if comprehensive)
 - Update the `updated` date
-- Regenerate affected MOCs
 
-If no seedlings exist, report archive is clean.
+If no seedlings exist, report archive is clean. `bases/Knowledge.base` reflects the changes automatically.
 
 ---
 
@@ -206,11 +201,11 @@ Summarize the source in 2-3 sentences. Identify key entities, claims, and insigh
 
 ### Step 2 — Classify and create primary note
 
-Determine entity type (People, Companies, Ideas, or Research) using the classification rules in `_schema.md`. Most ingested sources become Ideas.
+Determine entity type (`person`, `company`, `idea`, or `research`). Most ingested sources become `idea`.
 
-Create the primary note using the schema for that type:
+Create the primary note using the canonical entity frontmatter (see `bases/Knowledge.base` header):
 - Generate kebab-case slug from title (max 60 chars)
-- Write to `KNOWLEDGE/<Type>/<slug>.md` with proper frontmatter
+- Write to `$VAULT_DIR/domains/Knowledge/<slug>.md` with `type:` frontmatter
 - Include `source_url:` or `source_path:` in frontmatter
 - **MANDATORY: Include `related:` array with 2-4 typed links** — the ripple pass (Step 3) identifies these, and they must be baked into the frontmatter of the primary note at creation time, not added after
 
@@ -220,10 +215,10 @@ Search for existing notes that relate to this new content:
 
 ```bash
 # Search by extracted tags
-rg -i "TAG1|TAG2|TAG3" ~/.claude/PAI/MEMORY/KNOWLEDGE/ --type md -l --glob '!_*'
+rg -i "TAG1|TAG2|TAG3" "$VAULT_DIR/domains/" --type md -l --glob '!_*'
 
 # Search by key entities/concepts mentioned
-rg -i "ENTITY1|ENTITY2" ~/.claude/PAI/MEMORY/KNOWLEDGE/ --type md -l --glob '!_*'
+rg -i "ENTITY1|ENTITY2" "$VAULT_DIR/domains/" --type md -l --glob '!_*'
 ```
 
 For each related note found (up to 10):
@@ -255,20 +250,17 @@ After the user approves (or you determine updates are low-risk cross-references)
 - Update `updated:` date on modified notes
 - For contradictions: add a `> ⚠️ **Contradiction:** [note] claims X — see [[new-note]] for counter-evidence` callout, AND add `type: contradicts` in related: arrays
 
-### Step 5 — Log and index
+### Step 5 — Log
 
-Append to `KNOWLEDGE/_log.md`:
+Append to `$VAULT_DIR/domains/Knowledge/_log.md`:
 ```
 ## [YYYY-MM-DD] ingest | Title
 - Source: <url or path>
-- Primary: <Type>/<slug>
+- Primary: Knowledge/<slug> (type: <type>)
 - Ripple: N notes updated, N contradictions flagged
 ```
 
-Regenerate MOCs:
-```bash
-bun ~/.claude/PAI/TOOLS/KnowledgeHarvester.ts index
-```
+No MOC step — `bases/Knowledge.base` indexes new/updated notes automatically by `type:`.
 
 Present in NATIVE mode.
 
@@ -323,7 +315,6 @@ If the user approves resolutions:
 - Update contradicted notes with correction callouts
 - Update superseded notes with `> 📅 **Updated:** See [[newer-note]] for current information`
 - Update `updated:` dates
-- Regenerate MOCs
 
 Present in NATIVE mode.
 
@@ -383,7 +374,7 @@ Mine recent conversations for memory candidates (decisions, preferences, milesto
 bun ~/.claude/PAI/TOOLS/SessionHarvester.ts --mine --recent 10
 ```
 
-Candidates are written to `KNOWLEDGE/_harvest-queue/` for review — never directly to KNOWLEDGE/. Use `/knowledge harvest` to process the queue.
+Candidates are staged as typed `.md` stubs in `$VAULT_DIR/inbox/ready/` for review — never directly into `domains/`. Run `/distribute` to file them into `domains/` and ripple their entities.
 
 For dry run (preview only):
 ```bash
@@ -399,9 +390,9 @@ Present in NATIVE mode.
 - **4 entity types now.** People (human beings), Companies (organizations), Ideas (insights/theses/analyses), Research (multi-source investigations with methodology). If it doesn't fit one of these, it's not knowledge — it belongs in WORK/ or LEARNING/.
 - **Topic = tag, not domain.** A security insight is an Idea with a `security` tag. Never create topic-based folders.
 - **The lookup test.** "Would the user look this up by name?" — if not, it's not knowledge.
-- **Schema enforcement.** Each entity type has required fields defined in `_schema.md`. Always read the schema before writing.
-- **Algorithm LEARN phase writes directly.** The LEARN phase has the best context — it writes to KNOWLEDGE/ with proper schemas. Harvester reflections are disabled.
-- **Never delete notes without asking.** Pruning is automatic (90-day seedling expiry via harvester). Manual deletion requires the user's approval.
+- **Schema enforcement.** The canonical entity frontmatter is documented in the `bases/Knowledge.base` header. Follow it so the Base and readers index the note.
+- **The vault is the single source of truth.** Entity notes live in the vault (`domains/`), keyed by `type:`. There is no separate `MEMORY/KNOWLEDGE` graph; `bases/Knowledge.base` is the query/UI layer.
+- **Never delete notes without asking.** Stale low-quality notes (90-day, quality ≤2) are surfaced by `status`, not auto-pruned. Manual deletion requires the user's approval.
 - **Wikilinks use strict kebab-case.** `[[prompt-injection]]` not `[[Prompt Injection]]`.
 - **All harvested notes start as seedlings.** Only `/knowledge develop` promotes them.
 - **Temporal validity is optional.** Notes can have `valid_from`/`valid_until` frontmatter fields to track when facts were true. The contradiction detector uses these to skip non-overlapping time windows.
