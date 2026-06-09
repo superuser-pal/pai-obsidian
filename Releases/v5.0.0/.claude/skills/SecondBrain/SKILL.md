@@ -53,6 +53,7 @@ Three rules govern routing:
 | Morning ritual | `/open-day` | Load TELOS, today's plan, open inbox |
 | Evening ritual | `/close-day` | Reconcile + reflection summary to MEMORY/LEARNING/REFLECTIONS/ |
 | New topical area | `/create-domain <Name>` | Scaffold `domains/<Name>/{INDEX,01_PROJECTS,02_PAGES,03_ARCHIVE}` |
+| Audit domain hygiene | `/validate-vault` | Advisory report: skeleton, naming, orphans, depth, frontmatter |
 
 See [References/CommandReference.md](References/CommandReference.md) for full per-command behavior.
 
@@ -162,6 +163,7 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 | [Tools/QueueUpdate.ts](Tools/QueueUpdate.ts) | Append/update the pending-distribution queue at `MEMORY/STATE/secondbrain-queue.md` |
 | [Tools/IngestLog.ts](Tools/IngestLog.ts) | Append a lifecycle event to `MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl` |
 | [Tools/QmdUpdate.ts](Tools/QmdUpdate.ts) | Re-index vault collections; called by workflows before first search |
+| [Tools/ValidateVault.ts](Tools/ValidateVault.ts) | Audit each domain for skeleton, naming, orphan, depth, and frontmatter compliance — advisory by default, `--strict` for CI |
 
 ## Workflows
 
@@ -178,6 +180,7 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 | CloseDay | [Workflows/CloseDay.md](Workflows/CloseDay.md) |
 | CreateDomain | [Workflows/CreateDomain.md](Workflows/CreateDomain.md) |
 | Harvest | [Workflows/Harvest.md](Workflows/Harvest.md) |
+| ValidateVault | [Workflows/ValidateVault.md](Workflows/ValidateVault.md) |
 
 ## References
 
