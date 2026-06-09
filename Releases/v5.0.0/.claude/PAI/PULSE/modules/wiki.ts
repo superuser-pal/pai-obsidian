@@ -38,7 +38,16 @@ import MiniSearch from "minisearch"
 const HOME = process.env.HOME ?? "~"
 const PAI_DIR = join(HOME, ".claude", "PAI")
 const DOCUMENTATION_DIR = join(PAI_DIR, "DOCUMENTATION")
-const KNOWLEDGE_DIR = join(PAI_DIR, "MEMORY", "KNOWLEDGE")
+// Phase 11 — vault as single source of truth. Knowledge entities live in the
+// Obsidian vault ($VAULT_DIR/domains/**) as notes carrying `type:` frontmatter,
+// not the old PAI/MEMORY/KNOWLEDGE typed graph. Resolve the vault root; if it's
+// unset the knowledge view simply stays empty (Pulse keeps serving everything else).
+function resolveVaultRoot(): string | null {
+  const v = process.env.VAULT_DIR ?? process.env.OBSIDIAN_VAULT
+  return v && v.trim() ? v.trim().replace(/\/+$/, "") : null
+}
+const VAULT_ROOT = resolveVaultRoot()
+const KNOWLEDGE_DIR = VAULT_ROOT ? join(VAULT_ROOT, "domains") : ""
 const BOOKMARKS_DIR = join(PAI_DIR, "MEMORY", "BOOKMARKS")
 const BOOKMARKS_CSV = join(BOOKMARKS_DIR, "bookmarks.csv")
 // Resolve the Algorithm directory case-insensitively. The v6.3.0 doctrine uses
@@ -81,8 +90,10 @@ const SETTINGS_PATH = join(HOME, ".claude", "settings.json")
 const ARBOL_WORKERS_DIR = join(PAI_DIR, "USER", "ARBOL", "Workers")
 
 const SYSTEM_PROMPT_PATH = join(PAI_DIR, "PAI_SYSTEM_PROMPT.md")
-const KNOWLEDGE_DOMAINS = ["People", "Companies", "Ideas", "Blogs"] as const
-type KnowledgeDomain = (typeof KNOWLEDGE_DOMAINS)[number]
+// Entity types that make a vault note part of the knowledge graph. The value
+// doubles as the wiki category. (Phase 11: replaces the old folder-named
+// KNOWLEDGE_DOMAINS, which also carried a "Blogs"/"Research" inconsistency.)
+const KNOWLEDGE_CATEGORIES = new Set(["person", "company", "idea", "research"])
 
 // Types
 
@@ -580,34 +591,39 @@ function indexSystemDocs(): void {
 // Knowledge Indexing
 
 function indexKnowledgeArchive(): void {
-  const domainToCategory: Record<KnowledgeDomain, string> = {
-    People: "person",
-    Companies: "company",
-    Ideas: "idea",
-    Blogs: "blog",
-  }
+  if (!KNOWLEDGE_DIR || !existsSync(KNOWLEDGE_DIR)) return
 
-  for (const domain of KNOWLEDGE_DOMAINS) {
-    const domainDir = join(KNOWLEDGE_DIR, domain)
-    if (!existsSync(domainDir)) continue
-
+  // Walk the vault's domains/ recursively. A note is a knowledge entity if its
+  // `type:` frontmatter is one of the four entity types; that type is also its
+  // wiki category. Folder layout is irrelevant (Phase 11: type-tagged + Base).
+  const collect = (dir: string): void => {
+    let entries: ReturnType<typeof readdirSync>
     try {
-      const files = readdirSync(domainDir, { withFileTypes: true })
-        .filter(
-          (entry) =>
-            entry.isFile() && entry.name.endsWith(".md") && !entry.name.startsWith("_")
-        )
-        .map((entry) => join(domainDir, entry.name))
-        .sort((a, b) => naturalCollator.compare(a, b))
-
-      for (const filePath of files) {
-        const page = indexFile(filePath, { category: domainToCategory[domain] })
-        if (page) pageIndex.set(page.slug, page)
-      }
+      entries = readdirSync(dir, { withFileTypes: true })
     } catch {
-      // Skip unreadable knowledge domains.
+      return
+    }
+    const sorted = [...entries].sort((a, b) => naturalCollator.compare(a.name, b.name))
+    for (const entry of sorted) {
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        if (entry.name.startsWith(".")) continue
+        collect(full)
+        continue
+      }
+      if (!entry.name.endsWith(".md") || entry.name.startsWith("_")) continue
+      try {
+        const fm = parseFrontmatter(readFileSync(full, "utf-8"))
+        const type = String(fm.type ?? "").trim().toLowerCase()
+        if (!KNOWLEDGE_CATEGORIES.has(type)) continue
+        const page = indexFile(full, { category: type })
+        if (page) pageIndex.set(page.slug, page)
+      } catch {
+        // Skip unreadable notes.
+      }
     }
   }
+  collect(KNOWLEDGE_DIR)
 }
 
 // Full Index Build
@@ -852,7 +868,7 @@ function buildTree(): TreeNode[] {
     People: { category: "person", label: "People" },
     Companies: { category: "company", label: "Companies" },
     Ideas: { category: "idea", label: "Ideas" },
-    Blogs: { category: "blog", label: "Blogs" },
+    Research: { category: "research", label: "Research" },
   }
 
   let knowledgeTotal = 0
@@ -953,6 +969,8 @@ function getStats(): Record<string, number> {
     totalPeople: pages.filter((page) => page.category === "person").length,
     totalCompanies: pages.filter((page) => page.category === "company").length,
     totalIdeas: pages.filter((page) => page.category === "idea").length,
+    totalResearch: pages.filter((page) => page.category === "research").length,
+    // Backward-compat key for the prebuilt Pulse frontend ("Blogs" card).
     totalBlogs: pages.filter((page) => page.category === "blog").length,
     totalBookmarks: pages.filter((page) => page.category === "bookmark").length,
   }
@@ -996,10 +1014,11 @@ function handleDoc(slug: string): Response {
     return notFound(`Wiki page "${slug}" not found`)
   }
 
-  // Knowledge categories (person/company/idea/blog) get the full knowledge
+  // Knowledge categories (person/company/idea/research) get the full knowledge
   // shape — including related, tags, source — so MarkdownRenderer wikilinks
   // landing here render identically to the dedicated knowledge route.
-  const knowledgeCategories = new Set(["person", "company", "idea", "blog"])
+  // "blog" kept as a backward-compat alias for the prebuilt Pulse frontend.
+  const knowledgeCategories = new Set(["person", "company", "idea", "research", "blog"])
   if (knowledgeCategories.has(page.category)) {
     const related = (page.related ?? [])
       .map((relSlug) => {
@@ -1047,10 +1066,12 @@ function handleKnowledgeNote(domain: string, slug: string): Response {
     people: "person",
     companies: "company",
     ideas: "idea",
-    blogs: "blog",
+    research: "research",
     person: "person",
     company: "company",
     idea: "idea",
+    // Backward-compat aliases for the prebuilt Pulse frontend.
+    blogs: "blog",
     blog: "blog",
   }
 
