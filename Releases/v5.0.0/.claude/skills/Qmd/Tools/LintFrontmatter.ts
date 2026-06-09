@@ -91,8 +91,8 @@ function isValidTimestamp(s: unknown): boolean {
 
 /** Is this file SecondBrain vault content (vs a SKILL.md, README, doc, etc.)? */
 function isVaultContent(file: string): boolean {
-  return /\/(inbox|plan|thinking|domains|bases)(\/|$)/.test(file)
-      || /\/MEMORY\/KNOWLEDGE\/_harvest-queue\//.test(file);
+  // Entity notes live in domains/Knowledge/ — already covered by the `domains` match.
+  return /\/(inbox|plan|thinking|domains|bases)(\/|$)/.test(file);
 }
 
 function lintFile(file: string): Finding[] {

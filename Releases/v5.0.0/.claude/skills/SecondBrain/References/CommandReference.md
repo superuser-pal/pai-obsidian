@@ -86,7 +86,7 @@ The "considered" version of quick-dump.
        - If `unclear`: prompt user; show top candidates.
      - Move to `domains/<T>/02_PAGES/<name>`.
      - Append `distributed: <ISO>`, `domain: <T>` to frontmatter.
-     - `KnowledgeRipple.ts` → harvest-queue stubs.
+     - `KnowledgeRipple.ts` → typed entity notes in `domains/Knowledge/`.
      - **Cascade preview** (NOT auto-applied):
        - `qmd query [[<title>]]` → find related pages.
        - Show user the proposed cross-link updates; user confirms each.
@@ -179,4 +179,4 @@ Plus one not exposed as a command:
 
 | Workflow | When to invoke |
 |---|---|
-| [Harvest.md](../Workflows/Harvest.md) | Manual full reindex — `qmd embed`, harvest-queue drain |
+| [Harvest.md](../Workflows/Harvest.md) | Manual full reindex — `qmd embed` + knowledge-graph health check |

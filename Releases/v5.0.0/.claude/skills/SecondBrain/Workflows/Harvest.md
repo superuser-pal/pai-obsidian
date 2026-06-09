@@ -1,7 +1,7 @@
 # Harvest Workflow
 
-Manual full-reindex + harvest-queue drain. Not a user-facing command — invoke
-when you suspect the qmd index is stale or the harvest queue is backlogged.
+Manual full qmd reindex + knowledge-graph health check. Not a user-facing
+command — invoke when you suspect the qmd index is stale.
 
 ## When to use
 
@@ -19,33 +19,24 @@ when you suspect the qmd index is stale or the harvest queue is backlogged.
    ```
    Both commands report counts (new / updated / unchanged / removed).
 
-2. **Inspect harvest queue:**
+2. **Knowledge-graph health check** (Phase 11: entities are typed vault notes,
+   not a separate queue):
    ```bash
-   ls .claude/PAI/MEMORY/KNOWLEDGE/_harvest-queue/ | wc -l
+   bun .claude/PAI/TOOLS/KnowledgeHarvester.ts status
    ```
-   - If `<10` items: probably normal, nothing to do.
-   - If `>50` items: PAI's `KnowledgeHarvester.ts` may not be running on its
-     schedule. Surface to user.
+   Reports entity counts by type, quality buckets, orphan wikilinks, and stale
+   low-quality notes. Browse/query the graph via `bases/Knowledge.base`.
 
-3. **Optionally trigger PAI's harvester:**
-   PAI's `KnowledgeHarvester.ts` consumes the queue. Invoke it explicitly:
-   ```bash
-   bun .claude/PAI/TOOLS/KnowledgeHarvester.ts
-   ```
-   (See `.claude/PAI/DOCUMENTATION/Memory/MemorySystem.md` for invocation details
-   if this command shape changes.)
-
-4. **Report:**
+3. **Report:**
    - qmd update: new/updated/unchanged/removed counts.
    - qmd embed: chunks/docs.
-   - Harvest queue before/after.
-   - Any entries that look manually-broken (malformed frontmatter, etc.).
+   - Knowledge status: entity counts, orphans, stale notes.
 
 ## Boundary
 
 Harvest is read-mostly. It does NOT:
 - Rewrite vault content.
-- Auto-classify queue stubs (that's the harvester's job).
+- Re-classify entity `type:` (the user owns that).
 - Decide what's stale in `domains/`.
 
 ## Embedding cost

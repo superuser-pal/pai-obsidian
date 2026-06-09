@@ -58,12 +58,12 @@ Under `$PAI_DIR/PAI/MEMORY/` (NOT the vault), this skill writes to five paths:
 | `MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl` | `IngestLog.ts` | One JSON object per line |
 | `MEMORY/ARCHIVE/secondbrain-snapshots/<ts>-<slug>.md` | `/distribute` (pre-write snapshot) | Full pre-distribute file copy |
 | `MEMORY/LEARNING/REFLECTIONS/secondbrain-close-day.jsonl` | `/close-day` | One JSON object per session |
-| `MEMORY/KNOWLEDGE/_harvest-queue/<slug>.md` | `KnowledgeRipple.ts` | Frontmatter-only stubs |
 
-These are PAI's runtime — never user-edited. The harvest queue is consumed by PAI's
-existing `KnowledgeHarvester.ts` (`$PAI_DIR/PAI/TOOLS/`) into the typed
-`MEMORY/KNOWLEDGE/{People,Companies,Ideas,Research}/` graph. The writer tools create
-their parent directories on first write, so a fresh install needs no manual scaffolding.
+The four above are PAI runtime under `$PAI_DIR` — never user-edited. Separately,
+`KnowledgeRipple.ts` writes typed entity notes to `$VAULT_DIR/domains/Knowledge/<slug>.md`
+— that is real vault content (the knowledge graph), queried via `bases/Knowledge.base`.
+The writer tools create their parent directories on first write, so a fresh install
+needs no manual scaffolding.
 
 ## Why two anchors (vs upstream repo==vault)
 

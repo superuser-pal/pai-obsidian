@@ -1,6 +1,6 @@
 ---
 name: Distribute
-description: Route every file in inbox/ready/ to domains/<T>/02_PAGES/. Snapshots before write, emits harvest-queue stubs via KnowledgeRipple, previews cascade updates to related pages (user confirms each — never auto-applied).
+description: Route every file in inbox/ready/ to domains/<T>/02_PAGES/. Snapshots before write, upserts [[entities]] as typed notes in domains/Knowledge/ via KnowledgeRipple (queryable via bases/Knowledge.base), previews cascade updates to related pages (user confirms each — never auto-applied).
 argument-hint: [--file path] [--domain Name] [--no-cascade]
 ---
 

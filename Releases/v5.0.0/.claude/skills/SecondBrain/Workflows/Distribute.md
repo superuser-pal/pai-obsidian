@@ -1,7 +1,7 @@
 # Distribute Workflow
 
-Route every file in `inbox/ready/` to `domains/<T>/02_PAGES/`. Snapshot, ripple,
-preview cascade.
+Route every file in `inbox/ready/` to `domains/<T>/02_PAGES/`. Snapshot, upsert
+entities, preview cascade.
 
 ## Steps
 
@@ -33,13 +33,14 @@ preview cascade.
    - Append to frontmatter: `distributed: <now ISO>`, `domain: <T>`.
    - `git mv inbox/ready/<name> domains/<T>/02_PAGES/<name>` (preserve git history per CLAUDE.md vault conventions).
 
-   ### d. Ripple
+   ### d. Ripple (entity upsert)
    ```
    bun .claude/skills/SecondBrain/Tools/KnowledgeRipple.ts domains/<T>/02_PAGES/<name>
    ```
    Outputs JSON `{ written: [...], skipped: [...] }`. The `written` paths are
-   harvest-queue stubs; PAI's `KnowledgeHarvester.ts` consumes them on its own
-   schedule.
+   typed entity notes created in `domains/Knowledge/` (type: person|company|idea|
+   research) — visible in Obsidian and queryable via `bases/Knowledge.base`.
+   `skipped` are entities that already exist somewhere in the vault.
 
    ### e. Cascade preview (NOT auto-applied)
    ```
@@ -59,7 +60,7 @@ preview cascade.
      --target-note domains/<T>/02_PAGES/<name>
    ```
 
-4. **Report:** count distributed, count held (unclear), count of harvest-queue stubs emitted, count of cascade edits accepted.
+4. **Report:** count distributed, count held (unclear), count of entity notes upserted into `domains/Knowledge/`, count of cascade edits accepted.
 
 ## Plan §13 R7 — cascade is suggested, not automatic
 

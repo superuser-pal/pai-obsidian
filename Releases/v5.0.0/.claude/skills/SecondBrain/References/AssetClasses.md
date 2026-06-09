@@ -3,7 +3,7 @@
 Every note has a `type:` in its frontmatter. The type drives:
 
 - Classification in `ResolveDomain.ts` (for `/distribute`)
-- Entity routing in `KnowledgeRipple.ts` (for harvest-queue stubs)
+- Entity routing in `KnowledgeRipple.ts` (for typed entity notes in `domains/Knowledge/`)
 - Daily reflection categorization (for `/close-day`)
 
 ## Five primary types
@@ -129,22 +129,26 @@ plan_items: []
 
 ## What KnowledgeRipple does with these
 
-When a note in `domains/.../02_PAGES/` contains `[[Alice Example]]`, ripple emits
-a stub at `.claude/PAI/MEMORY/KNOWLEDGE/_harvest-queue/Alice-Example.md`:
+When a note in `domains/.../02_PAGES/` contains `[[Alice Example]]`, ripple upserts
+a typed entity note at `$VAULT_DIR/domains/Knowledge/alice-example.md`:
 
 ```yaml
 ---
-type: People
+type: person
+created: 2026-05-19 02:32 PM
 source: secondbrain
 seen_in: domains/Work/02_PAGES/2026-05-19-team-sync.md
-discovered: 2026-05-19T14:32:11Z
 pending-classification: false
+tags: []
+related: []
+quality: 5
 ---
 # Alice Example
 ```
 
-PAI's `KnowledgeHarvester.ts` (independent pipeline at `.claude/PAI/TOOLS/`) polls
-`_harvest-queue/` on its schedule and lands stubs into
-`MEMORY/KNOWLEDGE/People/Alice-Example.md` with the full PAI typed-entity contract.
+The note lives in the vault, visible in Obsidian and indexed by
+`bases/Knowledge.base` (which groups by `type:`). Ripple dedups against the whole
+vault, so an entity already filed elsewhere is not re-created.
 
-We never write to `MEMORY/KNOWLEDGE/People/` directly. Plan §12 + invariant i8.
+There is no separate `MEMORY/KNOWLEDGE` typed graph or harvest queue (Phase 11:
+vault as single source of truth).

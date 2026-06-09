@@ -1,7 +1,8 @@
 # QuickDump Workflow
 
-One-shot route: input → classified → in a domain page → entities rippled. No
-inbox dwell time. Use when you trust the heuristics and don't want a two-step.
+One-shot route: input → classified → in a domain page → entities upserted into
+`domains/Knowledge/`. No inbox dwell time. Use when you trust the heuristics and
+don't want a two-step.
 
 ## Steps
 
@@ -28,7 +29,7 @@ inbox dwell time. Use when you trust the heuristics and don't want a two-step.
    ```
    - If `target` is `null` (unclear): prompt user with candidates; offer `--domain <Name>` override or `/create-domain <Name>`.
 5. **Write to `domains/<T>/02_PAGES/<YYYY-MM-DD>-<slug>.md`.**
-6. **Ripple entities:**
+6. **Upsert entities** (creates typed notes in `domains/Knowledge/`):
    ```
    bun .claude/skills/SecondBrain/Tools/KnowledgeRipple.ts <target>
    ```
@@ -38,7 +39,7 @@ inbox dwell time. Use when you trust the heuristics and don't want a two-step.
    bun .claude/skills/SecondBrain/Tools/IngestLog.ts \
      --action quick-dump --source-note <target>
    ```
-9. **Report:** target path, type, ripple stub count.
+9. **Report:** target path, type, count of entity notes upserted into `domains/Knowledge/`.
 
 ## When NOT to use QuickDump
 

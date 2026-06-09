@@ -1,14 +1,14 @@
 ---
 name: SecondBrain
-description: "Capture → process → distribute lifecycle for a personal Obsidian knowledge vault (content under $VAULT_DIR; PAI runtime under $PAI_DIR). Manages inbox/raw → inbox/ready → domains/<Topic>/02_PAGES routing for arbitrary content (URLs, files, freeform thoughts, brain dumps, quick captures). Surfaces entities ([[People]], [[Companies]], [[Ideas]], [[Research]]) and ripples them into PAI's MEMORY/KNOWLEDGE/_harvest-queue/ for the existing KnowledgeHarvester pipeline to consume. Owns ten workflows: Capture (drop into inbox/raw), BrainDump (atomic observation extraction with [category] syntax), QuickDump (classify + route + ripple), Save (light edit + classify + dedup + wikilinks), Process (raw → ready with full frontmatter, qmd-update first), Distribute (ready → domains/<Name>/02_PAGES/ + snapshot + ripple + cascade preview), IngestUrl (defuddle → process → distribute chain), OpenDay (TELOS + today's plan + open inbox), CloseDay (route typed entities + reflection summary to MEMORY/LEARNING/REFLECTIONS/), CreateDomain (scaffold domains/<Name>/{INDEX,01_PROJECTS,02_PAGES,03_ARCHIVE}). Plus Harvest (full reindex). Vault content folders (inbox/, plan/, thinking/, domains/, bases/) live under $VAULT_DIR; PAI runtime state (queue, ingest log, snapshots, harvest stubs) lives under $PAI_DIR (~/.claude), never the vault. PAI's MEMORY/KNOWLEDGE/ remains authoritative for typed AI data; this skill never writes there directly — only stubs into _harvest-queue/. USE WHEN capture, save, brain dump, quick dump, process inbox, distribute, ingest url, open day, close day, create domain, harvest, second brain, vault, daily plan, drop this in inbox, knowledge ripple, where does this belong. NOT FOR bulk vault export ingestion from external tools (use Migrate). NOT FOR Knowledge Archive direct edits (use Knowledge)."
+description: "Capture → process → distribute lifecycle for a personal Obsidian knowledge vault (content under $VAULT_DIR; PAI runtime under $PAI_DIR). Manages inbox/raw → inbox/ready → domains/<Topic>/02_PAGES routing for arbitrary content (URLs, files, freeform thoughts, brain dumps, quick captures). Surfaces entities ([[People]], [[Companies]], [[Ideas]], [[Research]]) and upserts them as typed notes (type: person|company|idea|research) directly into the vault at domains/Knowledge/, queryable via bases/Knowledge.base. (Phase 11: the vault is the single source of truth — there is no separate MEMORY/KNOWLEDGE graph or harvest queue.) Owns ten workflows: Capture (drop into inbox/raw), BrainDump (atomic observation extraction with [category] syntax), QuickDump (classify + route + entity upsert), Save (light edit + classify + dedup + wikilinks), Process (raw → ready with full frontmatter, qmd-update first), Distribute (ready → domains/<Name>/02_PAGES/ + snapshot + entity upsert + cascade preview), IngestUrl (defuddle → process → distribute chain), OpenDay (TELOS + today's plan + open inbox), CloseDay (surface typed entities + reflection summary to MEMORY/LEARNING/REFLECTIONS/), CreateDomain (scaffold domains/<Name>/{INDEX,01_PROJECTS,02_PAGES,03_ARCHIVE}). Plus Harvest (qmd reindex + knowledge health). Vault content folders (inbox/, plan/, thinking/, domains/, bases/) live under $VAULT_DIR; PAI runtime state (ingest log, snapshots, reflections) lives under $PAI_DIR (~/.claude), never the vault. USE WHEN capture, save, brain dump, quick dump, process inbox, distribute, ingest url, open day, close day, create domain, harvest, second brain, vault, daily plan, drop this in inbox, knowledge ripple, where does this belong. NOT FOR bulk vault export ingestion from external tools (use Migrate). NOT FOR managing the typed entity graph directly (use Knowledge)."
 ---
 
 # SecondBrain — capture → process → distribute lifecycle on PAI
 
 This skill turns an Obsidian vault into a personal knowledge system. Drop a thought into
 `inbox/raw/`, run `/process`, run `/distribute`, and the page lands in the right
-topical domain — while entities ripple into PAI's typed knowledge graph through
-the existing harvest pipeline.
+topical domain — while `[[entities]]` are upserted as typed notes in the vault
+(`domains/Knowledge/`), queryable via `bases/Knowledge.base`.
 
 **Two anchors (pai-obsidian split):** the vault and PAI's runtime live in different
 places. Vault content folders — `inbox/`, `plan/`, `thinking/`, `domains/`, `bases/` —
@@ -26,9 +26,9 @@ inbox →  inbox/raw/<n> │ ────────────▶  │ inbox/
               ▲                                                                          │
               │ /capture                                                                 │
               │ /brain-dump                                                              ▼
-              │ /quick-dump                                                  MEMORY/ARCHIVE/secondbrain-snapshots/
-              │ /save                                                        MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl
-              │                                                              MEMORY/KNOWLEDGE/_harvest-queue/<entity>.md
+              │ /quick-dump                                    $PAI_DIR: MEMORY/ARCHIVE/secondbrain-snapshots/
+              │ /save                                                    MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl
+              │                                               $VAULT_DIR: domains/Knowledge/<entity>.md (typed notes)
               │
         any source (URL, file, voice, freeform thought)
 ```
@@ -58,9 +58,10 @@ See [References/CommandReference.md](References/CommandReference.md) for full pe
 
 ## What this skill does NOT do
 
-- **Does not write to `MEMORY/KNOWLEDGE/{People,Companies,Ideas,Research}/` directly.**
-  Detected entities become stubs in `MEMORY/KNOWLEDGE/_harvest-queue/`; PAI's existing
-  `KnowledgeHarvester.ts` consumes those stubs into the typed graph. Preserves v1 invariant i8.
+- **Creates entity notes in the vault, not a separate graph.** Detected `[[entities]]`
+  are upserted as typed notes (`type: person|company|idea|research`) in
+  `domains/Knowledge/`, deduped against the whole vault. There is no `MEMORY/KNOWLEDGE`
+  typed graph or harvest queue anymore (Phase 11: vault as single source of truth).
 - **Does not auto-edit related pages on distribute.** The cascade is *suggested + previewed*;
   the user confirms each related-page edit (plan §13 R7, preserved from v1 R7).
 - **Does not migrate existing content from another vault.** Use PAI's `Migrate` skill against
@@ -78,11 +79,13 @@ All runtime paths are under `$PAI_DIR` (`~/.claude` by default), NOT the vault:
 | Lifecycle event log | `$PAI_DIR/PAI/MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl` |
 | Pre-distribute snapshots | `$PAI_DIR/PAI/MEMORY/ARCHIVE/secondbrain-snapshots/` |
 | Daily reflections | `$PAI_DIR/PAI/MEMORY/LEARNING/REFLECTIONS/secondbrain-close-day.jsonl` |
-| Entity harvest stubs (transient) | `$PAI_DIR/PAI/MEMORY/KNOWLEDGE/_harvest-queue/<slug>.md` |
+| Typed entity notes (in the VAULT) | `$VAULT_DIR/domains/Knowledge/<slug>.md` |
 
-All five are PAI-managed runtime state — never user-edited, and they live in the
-global PAI install, not in your notes vault. The tools that write them
-(`QueueUpdate`, `IngestLog`, `KnowledgeRipple`) create their parent dirs on first write.
+The first four are PAI-managed runtime state — never user-edited, and they live in the
+global PAI install, not in your notes vault. The entity notes are the exception: they
+are real vault content (the knowledge graph) under `$VAULT_DIR`. The tools that write
+these paths (`QueueUpdate`, `IngestLog`, `KnowledgeRipple`) create their parent dirs on
+first write.
 
 ## Frontmatter contract
 
@@ -110,7 +113,7 @@ checks these advisory (never blocking) — see plan §13 R2.
 |---|---|
 | [Tools/ResolveRoot.ts](Tools/ResolveRoot.ts) | `git rev-parse --show-toplevel` helper used by every other tool |
 | [Tools/ResolveDomain.ts](Tools/ResolveDomain.ts) | Classify a note (path + frontmatter + content heuristics) → target `domains/<Name>` |
-| [Tools/KnowledgeRipple.ts](Tools/KnowledgeRipple.ts) | Extract `[[Entity]]` wikilinks → emit harvest-queue stubs (plan §12) |
+| [Tools/KnowledgeRipple.ts](Tools/KnowledgeRipple.ts) | Extract `[[Entity]]` wikilinks → upsert typed entity notes into `domains/Knowledge/` |
 | [Tools/QueueUpdate.ts](Tools/QueueUpdate.ts) | Append/update the pending-distribution queue at `MEMORY/STATE/secondbrain-queue.md` |
 | [Tools/IngestLog.ts](Tools/IngestLog.ts) | Append a lifecycle event to `MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl` |
 | [Tools/QmdUpdate.ts](Tools/QmdUpdate.ts) | Re-index vault collections; called by workflows before first search |
@@ -143,6 +146,6 @@ checks these advisory (never blocking) — see plan §13 R2.
 ## Relationship to other PAI skills
 
 - **`Migrate`** — bulk export ingestion from external vaults (Notion, Apple Notes, other PAI installs). SecondBrain owns continuous single-capture; `Migrate` owns one-shot import. Plan §13 R1.
-- **`Knowledge`** — direct CRUD on `MEMORY/KNOWLEDGE/` typed entities. SecondBrain only emits harvest-queue stubs; `Knowledge` (or `KnowledgeHarvester.ts` automation) does the typed-graph writes.
+- **`Knowledge`** — search/develop/contradiction-check over the typed entity notes in the vault (`domains/Knowledge/`, queried via `bases/Knowledge.base`). SecondBrain creates those notes during capture/distribute; `Knowledge` curates and queries them. Same vault, no separate graph.
 - **`Qmd`** — semantic vault search. SecondBrain workflows call `qmd update` before searches and `qmd query` for duplicate checks.
 - **`ObsidianMarkdown` / `ObsidianCLI` / `ObsidianBases`** — vault authoring primitives. SecondBrain composes these for higher-order operations.

@@ -64,18 +64,18 @@ related_pages: [./page-a.md, ./page-b.md]  # optional
 3. Resolve target domain via `ResolveDomain.ts`.
    - If `unclear`: prompt user, list candidates.
 4. Move file to `domains/<T>/02_PAGES/<n>.md`.
-5. Run `KnowledgeRipple.ts` → emits harvest-queue stubs for each `[[Entity]]`.
+5. Run `KnowledgeRipple.ts` → upserts a typed entity note in `domains/Knowledge/` for each new `[[Entity]]`.
 6. Run cascade preview (find pages with `[[<this-note>]]` references) — show user, do NOT auto-edit.
 7. Append `{action: distribute, source_note, target_note}` to jsonl.
 8. Mark queue entry as complete.
 
 ## Invariants (preserved from v1)
 
-- **i1** Vault is the UI, MEMORY is the system of record.
+- **i1** Vault is the single source of truth — the knowledge graph lives in `domains/`, queried via Bases.
 - **i2** Frontmatter lint is advisory; no PostToolUse gate.
 - **i3** qmd is the default search backbone.
 - **i4** Lifecycle is one-directional: raw → ready → domain.
-- **i8** `KnowledgeRipple` NEVER writes to `KNOWLEDGE/<Type>/`. It only seeds `_harvest-queue/`.
+- **i8** `KnowledgeRipple` upserts typed entity notes into the vault (`domains/Knowledge/`), deduped against the whole vault. There is no separate typed graph or queue (Phase 11).
 - **i9** Cascade is suggested + previewed, never auto-applied.
 - **i10** No hardcoded paths. Tools resolve via `git rev-parse --show-toplevel`.
 

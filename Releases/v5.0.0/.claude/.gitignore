@@ -85,8 +85,8 @@ PAI/MEMORY/VOICE/
 PAI/MEMORY/ARCHIVE/
 # Generated vector embeddings (regenerated)
 PAI/MEMORY/KNOWLEDGE/_embeddings/
-# Pending harvest items (transient queue)
-PAI/MEMORY/KNOWLEDGE/_harvest-queue/
+# Phase 11: knowledge entities live in the vault (domains/Knowledge/), not here.
+# The old MEMORY/KNOWLEDGE/_harvest-queue/ is retired.
 
 # ── PAI USER ────────────────────────────────────────
 # ARBOL/ is its own git repo — keep ignored

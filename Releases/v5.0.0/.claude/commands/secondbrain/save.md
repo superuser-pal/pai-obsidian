@@ -1,6 +1,6 @@
 ---
 name: Save
-description: Considered one-shot. Light edit + dedup check + wikilink resolution + classify + route + ripple + cascade preview. The "care" path; QuickDump is the "speed" path.
+description: Considered one-shot. Light edit + dedup check + wikilink resolution + classify + route + entity upsert (typed notes into domains/Knowledge/) + cascade preview. The "care" path; QuickDump is the "speed" path.
 argument-hint: [content | url | --file path] [--domain Name]
 ---
 

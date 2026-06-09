@@ -1,6 +1,6 @@
 ---
 name: Quick Dump
-description: One-shot classify + route + ripple. Skips inbox dwell time — input goes directly to domains/<T>/02_PAGES/<slug>.md with KnowledgeRipple stubs emitted. Use when you trust the classifier and want speed.
+description: One-shot classify + route + entity upsert. Skips inbox dwell time — input goes directly to domains/<T>/02_PAGES/<slug>.md and any [[entities]] are upserted as typed notes (person/company/idea/research) in domains/Knowledge/, visible in Obsidian and queryable via bases/Knowledge.base. Use when you trust the classifier and want speed.
 argument-hint: [content | url] [--domain Name] [--type T]
 ---
 

@@ -17,11 +17,11 @@ QuickDump. Use when the source is worth a moment of curation.
 4. **Wikilink resolution** — for each `[[X]]` already in the body:
    - `qmd query "<X>"` → if a top-1 match exists with score ≥85%, leave as-is.
    - If a partial match exists (e.g., `[[Alice]]` → `Alice Example`), prompt user to disambiguate.
-   - Otherwise leave the wikilink as a forward reference (ripple will create a queue stub).
+   - Otherwise leave the wikilink as a forward reference (the entity upsert will create the note in `domains/Knowledge/`).
 5. **Classify type and add frontmatter** (same as QuickDump steps 2–3). Run `date +"%Y-%m-%d %I:%M %p"` for `created`/`discovered` — local time, never ISO 8601 / UTC Z.
 6. **Resolve target domain** via `ResolveDomain.ts`.
 7. **Snapshot + write to `domains/<T>/02_PAGES/<slug>.md`.**
-8. **Ripple entities** via `KnowledgeRipple.ts`.
+8. **Upsert entities** via `KnowledgeRipple.ts` (typed notes into `domains/Knowledge/`).
 9. **Cascade preview** — `qmd query [[<this title>]]` → list pages that mention this note. Show the user; do NOT auto-edit cross-references (plan §13 R7).
 10. **Log + report.**
 
