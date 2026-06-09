@@ -322,7 +322,27 @@ decisions below (the operator wants to keep Pulse and the installer, not strip t
   avoid clobbering Claude Code's own `projects/sessions/history`, make the system-wide shell
   edits + menubar install opt-in.
 
-### Phase 11 — FUTURE CONSIDERATION: collapse to vault-as-single-source-of-truth
+### Phase 11 — IMPLEMENTED (2026-06-09): vault as single source of truth
+
+**Status: ✅ DONE on branch `phase-11-vault-as-source` (Option 2, full collapse). Layout: type-tagged + Base.**
+
+**What shipped (8 commits, all tool changes compile + tsc-clean + smoke-tested end-to-end):**
+1. `bases/Knowledge.base` — typed views (person/company/idea/research) over the vault; the Obsidian-native query layer. Schema documented in its header.
+2. `KnowledgeRipple.ts` → upserts typed entity notes into `$VAULT_DIR/domains/Knowledge/` (lowercase-kebab slugs, local timestamps, vault-wide dedup) instead of writing dead `.md` stubs to `_harvest-queue/`. `ResolveRoot.ts` dropped `memoryHarvestQueue`, added vault-derived `knowledgeHome`.
+3. Readers re-pointed to the vault, filtered by `type:`: `MemoryRetriever.ts`, `KnowledgeGraph.ts`, and Pulse `wiki.ts` (also fixed the pre-existing Blogs/Research server-side inconsistency).
+4. `KnowledgeHarvester.ts` slimmed 1051→~280 lines: intake scanners + queue drain removed; `status`/`contradictions` read the vault; `harvest`/`index` are deprecation notices. `SessionHarvester --mine` stages typed stubs into `inbox/ready/` (review queue) instead of the dead `.json` queue.
+5. `Knowledge` + `SecondBrain` SKILL.md, all SecondBrain workflows, the three `/quick-dump|/save|/distribute` command descriptions, and the References purged of harvest-queue and re-described for the vault model.
+
+**Key finding that de-risked it:** the old ripple→harvest bridge was already dead (ripple wrote `.md`, harvester read `.json`), `MEMORY/KNOWLEDGE` shipped empty (zero migration), and nothing was hook/cron-driven.
+
+**Deferred follow-ups (not blockers):**
+- **Pulse frontend rebuild** — the static Observability export still labels the 4th card "Blogs"; relabel → "Research" and rebuild (belongs with Pulse repurposing).
+- **KnowledgeGraph wikilink edges** — `[[Display Name]]` doesn't match slug `display-name`, so wikilink edges don't form (tag edges do). Pre-existing; normalize wikilink targets to slugs.
+- **PAI/DOCUMENTATION lore** — 3 auto-generated architecture docs still mention `_harvest-queue`; regenerate via PAI tooling.
+
+---
+
+#### Original plan (kept for reference)
 
 **Status: deliberate, plan carefully. Logged 2026-06-08 for future sessions. Not scheduled.**
 
