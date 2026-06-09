@@ -141,6 +141,17 @@ unbalanced wikilinks, etc.) causes a non-zero exit, halting the pipeline before
 a bad-state note ships. `info` findings (e.g. missing `source:` on an inbox
 note) stay non-blocking.
 
+**ProjectManagement exemption.** Project metadata files have their own
+`status:` enum (`planning | active | completed | archived`) and don't carry a
+SecondBrain `type:`. The linter recognizes and exempts them from F1/F2/F7:
+
+- `domains/<X>/01_PROJECTS/PROJECT_*.md` (active projects)
+- `domains/<X>/01_PROJECTS/AD_HOC_TASKS.md` (ad-hoc task list)
+- `domains/<X>/03_ARCHIVE/PROJECT_*.md` (archived projects)
+- `dashboards/TASKS.md` (bidirectional task aggregator)
+
+ProjectManagement governs those files; SecondBrain governs the rest.
+
 ## Tools
 
 | Tool | Purpose |

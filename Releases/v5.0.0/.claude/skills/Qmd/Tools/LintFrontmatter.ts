@@ -101,7 +101,25 @@ function isValidTimestamp(s: unknown): boolean {
 /** Is this file SecondBrain vault content (vs a SKILL.md, README, doc, etc.)? */
 function isVaultContent(file: string): boolean {
   // Entity notes live in domains/Knowledge/ — already covered by the `domains` match.
-  return /\/(inbox|plan|thinking|domains|bases)(\/|$)/.test(file);
+  return /\/(inbox|plan|thinking|domains|bases|dashboards)(\/|$)/.test(file);
+}
+
+/**
+ * Is this file owned by ProjectManagement (which has its own `status:` enum:
+ * `planning | active | completed | archived`)? F2 (type:) and F7 (SecondBrain
+ * status enum) don't apply — ProjectManagement governs these files.
+ *
+ *  - `domains/<X>/01_PROJECTS/PROJECT_*.md`
+ *  - `domains/<X>/01_PROJECTS/AD_HOC_TASKS.md`
+ *  - `domains/<X>/03_ARCHIVE/PROJECT_*.md` (archived projects)
+ *  - `dashboards/TASKS.md` (bidirectional task aggregator)
+ */
+function isProjectManagementFile(file: string): boolean {
+  return (
+    /\/01_PROJECTS\/(PROJECT_[A-Z][A-Z0-9_]*|AD_HOC_TASKS)\.md$/.test(file) ||
+    /\/03_ARCHIVE\/PROJECT_[A-Z][A-Z0-9_]*\.md$/.test(file) ||
+    /\/dashboards\/TASKS\.md$/.test(file)
+  );
 }
 
 /** Lifecycle enum for F7. Mirrors SECOND_BRAIN_PORT_PLAN §1 + old-spec 02-INBOX §2.1.0. */
@@ -113,19 +131,22 @@ function lintFile(file: string): Finding[] {
   const { fm, body, raw } = parseFrontmatter(content);
   const vault = isVaultContent(file);
   const inRaw = /\/inbox\/raw\//.test(file);
+  const isPmFile = isProjectManagementFile(file);
 
   // F1 — applies to vault content only. Generic markdown (READMEs, SKILL.md, docs)
-  // legitimately has no frontmatter.
+  // legitimately has no frontmatter. ProjectManagement aggregator files
+  // (AD_HOC_TASKS.md, dashboards/TASKS.md) also legitimately ship without
+  // frontmatter — they're heading + Tasks-checkbox lists, not knowledge notes.
   if (raw === null) {
-    if (vault) findings.push({ code: "F1", severity: "warn", message: "vault note missing YAML frontmatter (--- block at top)", file });
+    if (vault && !isPmFile) findings.push({ code: "F1", severity: "warn", message: "vault note missing YAML frontmatter (--- block at top)", file });
     return findings;
   }
 
   // F2 — `type:` is SecondBrain-specific (KnowledgeRipple classifier per §12).
-  // Vault content outside inbox/raw/ must carry it. inbox/raw/ is the one
-  // exemption: capture intentionally writes partial frontmatter and /process
-  // fills the type in.
-  if (vault && !inRaw && !fm.type) {
+  // Vault content outside inbox/raw/ must carry it. Exemptions:
+  //   - inbox/raw/: capture writes partial frontmatter; /process fills type in.
+  //   - ProjectManagement files: use their own metadata schema (no SecondBrain type).
+  if (vault && !inRaw && !isPmFile && !fm.type) {
     findings.push({ code: "F2", severity: "warn", message: "frontmatter.type missing (KnowledgeRipple classifier needs it)", file });
   }
 
@@ -156,10 +177,12 @@ function lintFile(file: string): Finding[] {
     findings.push({ code: "F6", severity: "warn", message: `unbalanced wikilinks: ${opens} \`[[\` vs ${closes} \`]]\``, file });
   }
 
-  // F7 — status enum. Vault content must carry a `status:` from the lifecycle
-  // enum. Workflows that create/move files run this in --enforce mode so the
-  // pipeline can't produce a bad-state note. Hand-edits only see the warning.
-  if (vault) {
+  // F7 — status enum. Vault content must carry a `status:` from the SecondBrain
+  // lifecycle enum. Workflows that create/move files run this in --enforce mode
+  // so the pipeline can't produce a bad-state note. Hand-edits only see the
+  // warning. ProjectManagement files are exempt — they use their own status
+  // enum (`planning | active | completed | archived`).
+  if (vault && !isPmFile) {
     const status = fm.status;
     if (status === undefined) {
       findings.push({ code: "F7a", severity: "warn", message: "frontmatter.status missing — expected one of: unprocessed | thinking | ready | processed | archived", file });
