@@ -24,14 +24,19 @@ Plus one workflow-specific:
 
 ## Frontmatter contract by type
 
+> All timestamps below are SecondBrain's local `YYYY-MM-DD HH:MM AM/PM` (never
+> ISO Z). All examples carry the lifecycle `status:` — see the
+> [Frontmatter contract](../SKILL.md#frontmatter-contract).
+
 ### `People`
 
 ```yaml
 ---
 type: People
-created: 2026-05-19T14:32:11Z
+status: processed
+created: 2026-05-19 02:32 PM
 source: capture
-discovered: 2026-05-19T14:32:11Z
+discovered: 2026-05-19 02:32 PM
 tags: [team, engineering]
 title: Alice Example
 # Optional:
@@ -47,9 +52,10 @@ related_entities: [[AcmeCorp]], [[Project Spectra]]
 ```yaml
 ---
 type: Companies
-created: 2026-05-19T14:32:11Z
+status: processed
+created: 2026-05-19 02:32 PM
 source: ingest-url
-discovered: 2026-05-19T14:32:11Z
+discovered: 2026-05-19 02:32 PM
 tags: [b2b, infrastructure]
 title: AcmeCorp
 # Optional:
@@ -66,9 +72,10 @@ related_entities: [[Alice Example]], [[Bob Co-founder]]
 ```yaml
 ---
 type: Ideas
-created: 2026-05-19T14:32:11Z
+status: processed
+created: 2026-05-19 02:32 PM
 source: brain-dump
-discovered: 2026-05-19T14:32:11Z
+discovered: 2026-05-19 02:32 PM
 tags: [crypto, identity]
 title: Zero-knowledge proofs as identity primitive
 # Optional:
@@ -83,9 +90,10 @@ supports: [[Self-sovereign identity]]
 ```yaml
 ---
 type: Research
-created: 2026-05-19T14:32:11Z
+status: processed
+created: 2026-05-19 02:32 PM
 source: ingest-url
-discovered: 2026-05-19T14:32:11Z
+discovered: 2026-05-19 02:32 PM
 tags: [ml, attention, transformers]
 title: Attention Is All You Need
 # Optional:
@@ -101,9 +109,10 @@ my_summary: "..."
 ```yaml
 ---
 type: Note
-created: 2026-05-19T14:32:11Z
+status: processed
+created: 2026-05-19 02:32 PM
 source: capture
-discovered: 2026-05-19T14:32:11Z
+discovered: 2026-05-19 02:32 PM
 tags: [process, deploys]
 title: How I think about deploys
 ---
@@ -114,10 +123,11 @@ title: How I think about deploys
 ```yaml
 ---
 type: Daily
-created: 2026-05-19T08:00:00Z
+status: processed
+created: 2026-05-19 08:00 AM
 date: 2026-05-19
 source: open-day
-discovered: 2026-05-19T08:00:00Z
+discovered: 2026-05-19 08:00 AM
 tags: [daily]
 title: 2026-05-19 — Tuesday
 # Auto-populated by /open-day:
@@ -135,6 +145,7 @@ a typed entity note at `$VAULT_DIR/domains/Knowledge/alice-example.md`:
 ```yaml
 ---
 type: person
+status: processed
 created: 2026-05-19 02:32 PM
 source: secondbrain
 seen_in: domains/Work/02_PAGES/2026-05-19-team-sync.md

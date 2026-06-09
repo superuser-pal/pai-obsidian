@@ -30,8 +30,18 @@ entities, preview cascade.
      - Halt this file; continue to next.
 
    ### c. Move
-   - Append to frontmatter: `distributed: <now ISO>`, `domain: <T>`.
+   - Append/promote frontmatter:
+     - `distributed: <date +"%Y-%m-%d %I:%M %p">` (local time, never ISO Z).
+     - `domain: <T>`
+     - `status: processed` (promote from `ready`).
    - `git mv inbox/ready/<name> domains/<T>/02_PAGES/<name>` (preserve git history per CLAUDE.md vault conventions).
+   - Validate the write (enforce):
+     ```
+     bun .claude/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<name> --enforce
+     ```
+     On non-zero exit: roll back the `git mv` (`git mv` back to
+     `inbox/ready/`), surface the finding, mark this file `held` in the
+     report, and continue with the next queue entry.
 
    ### d. Ripple (entity upsert)
    ```

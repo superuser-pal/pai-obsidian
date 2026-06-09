@@ -1,0 +1,96 @@
+# Inbox.base — lifecycle views grouped by `status:`.
+#
+# Phase 12 (SecondBrain port): every vault note carries a `status:` from the
+# lifecycle enum (unprocessed | thinking | ready | processed | archived).
+# This Base surfaces inbox + thinking flow at a glance — what's waiting to
+# be processed, what's reasoning-in-progress, what's ready to distribute.
+#
+# Distinct from Knowledge.base (which filters by entity `type:`); this Base
+# filters by lifecycle stage so the operator sees their own workflow state
+# without opening individual folders.
+#
+# Canonical lifecycle:
+#   unprocessed → ready → processed → archived
+#   thinking (parallel branch; promoted/archived by hand)
+
+filters:
+  or:
+    - 'status == "unprocessed"'
+    - 'status == "thinking"'
+    - 'status == "ready"'
+    - 'status == "processed"'
+    - 'status == "archived"'
+
+properties:
+  status:
+    displayName: "Status"
+  type:
+    displayName: "Type"
+  source:
+    displayName: "Source"
+  discovered:
+    displayName: "Discovered"
+  created:
+    displayName: "Created"
+
+views:
+  - type: table
+    name: "Unprocessed (inbox/raw)"
+    filters:
+      and:
+        - 'status == "unprocessed"'
+    order:
+      - file.name
+      - source
+      - discovered
+      - tags
+
+  - type: table
+    name: "Thinking"
+    filters:
+      and:
+        - 'status == "thinking"'
+    order:
+      - file.name
+      - discovered
+      - tags
+
+  - type: table
+    name: "Ready (awaiting distribute)"
+    filters:
+      and:
+        - 'status == "ready"'
+    order:
+      - file.name
+      - type
+      - source
+      - created
+
+  - type: table
+    name: "Processed (filed)"
+    filters:
+      and:
+        - 'status == "processed"'
+    order:
+      - file.name
+      - type
+      - created
+      - tags
+
+  - type: table
+    name: "Archived"
+    filters:
+      and:
+        - 'status == "archived"'
+    order:
+      - file.name
+      - type
+      - created
+
+  - type: cards
+    name: "All by status"
+    order:
+      - file.name
+      - status
+      - type
+      - created

@@ -12,10 +12,12 @@ don't want a two-step.
    - If content has wikilinks matching a People/Companies/Research pattern → that type.
    - If H1 starts with "idea:", "paper:", "research:" → corresponding type.
    - Otherwise: `Note`.
-3. **Generate frontmatter** (run `date +"%Y-%m-%d %I:%M %p"` for timestamps — local time, never ISO 8601 / UTC Z):
+3. **Generate frontmatter** (run `date +"%Y-%m-%d %I:%M %p"` for timestamps — local time, never ISO 8601 / UTC Z). QuickDump skips the inbox dwell, so the
+   note lands directly with `status: processed`:
    ```yaml
    ---
    type: <classified type>
+   status: processed
    created: <date +"%Y-%m-%d %I:%M %p">
    source: quick-dump
    discovered: <date +"%Y-%m-%d %I:%M %p">
@@ -29,17 +31,24 @@ don't want a two-step.
    ```
    - If `target` is `null` (unclear): prompt user with candidates; offer `--domain <Name>` override or `/create-domain <Name>`.
 5. **Write to `domains/<T>/02_PAGES/<YYYY-MM-DD>-<slug>.md`.**
-6. **Upsert entities** (creates typed notes in `domains/Knowledge/`):
+6. **Validate the write (enforce):**
+   ```
+   bun .claude/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<YYYY-MM-DD>-<slug>.md --enforce
+   ```
+   On non-zero exit: delete the just-written file (it's the only authoritative
+   copy at this point — the source was raw input, not a tracked file),
+   surface the linter output, and halt.
+7. **Upsert entities** (creates typed notes in `domains/Knowledge/`):
    ```
    bun .claude/skills/SecondBrain/Tools/KnowledgeRipple.ts <target>
    ```
-7. **Snapshot** to `MEMORY/ARCHIVE/secondbrain-snapshots/` (same as Distribute).
-8. **Log:**
+8. **Snapshot** to `MEMORY/ARCHIVE/secondbrain-snapshots/` (same as Distribute).
+9. **Log:**
    ```
    bun .claude/skills/SecondBrain/Tools/IngestLog.ts \
      --action quick-dump --source-note <target>
    ```
-9. **Report:** target path, type, count of entity notes upserted into `domains/Knowledge/`.
+10. **Report:** target path, type, count of entity notes upserted into `domains/Knowledge/`.
 
 ## When NOT to use QuickDump
 

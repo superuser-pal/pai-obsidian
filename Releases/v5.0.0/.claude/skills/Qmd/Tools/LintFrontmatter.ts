@@ -1,23 +1,32 @@
 #!/usr/bin/env bun
 /**
- * LintFrontmatter.ts — advisory frontmatter linter for SecondBrain markdown.
+ * LintFrontmatter.ts — frontmatter linter for SecondBrain markdown.
  *
  * Usage:
- *   bun LintFrontmatter.ts <file.md> [--json]
- *   bun LintFrontmatter.ts <dir/>   [--json]   # lints every .md under dir
+ *   bun LintFrontmatter.ts <file.md> [--json] [--enforce]
+ *   bun LintFrontmatter.ts <dir/>   [--json] [--enforce]   # lints every .md under dir
  *
- * Per SECOND_BRAIN_MIGRATION_v2.md §13 R2 (preserving v1 invariant i2),
- * frontmatter lint is advisory: warnings go to stderr, exit code is ALWAYS 0.
- * The Pack 2 workflows (`/process`, `/distribute`, `/save`) call this for the
- * developer experience — they never gate on it.
+ * Default mode: advisory (per plan §13 R2 / invariant i2). Warnings go to
+ * stderr, exit code is ALWAYS 0. Hand-edits in Obsidian and post-hoc audits
+ * stay friction-free.
+ *
+ * `--enforce` mode: every `warn` severity finding causes a non-zero exit.
+ * SecondBrain workflows that CREATE or MOVE a file invoke the linter in
+ * --enforce after the write, so the pipeline can't ship a file with a bad
+ * `status:` or missing required field. `info` findings (e.g. F3 missing
+ * `source:` on an inbox note) still don't block.
  *
  * Checks performed:
  *   F1  File has YAML frontmatter (--- delimited block at top)
- *   F2  frontmatter.type is present (used by KnowledgeRipple classifier, §12)
- *   F3  inbox/{raw,ready}/ files: source + discovered present
- *   F4  Date-shaped fields (created, modified, discovered) parse as ISO 8601
+ *   F2  frontmatter.type is present — required outside inbox/raw/
+ *       (raw/ is intentionally partial; /process fills `type` in)
+ *   F3  inbox/{raw,ready}/ files: source + discovered present (info)
+ *   F4  Date-shaped fields (created, modified, discovered) parse as
+ *       local "YYYY-MM-DD HH:MM AM/PM" or ISO 8601
  *   F5  tags is a YAML list, not a string
  *   F6  Basic wikilink hygiene: balanced [[ ]] in body
+ *   F7  frontmatter.status is present and a member of the lifecycle enum
+ *       (unprocessed | thinking | ready | processed | archived)
  */
 
 import { readFileSync, statSync, readdirSync } from "node:fs";
@@ -95,11 +104,15 @@ function isVaultContent(file: string): boolean {
   return /\/(inbox|plan|thinking|domains|bases)(\/|$)/.test(file);
 }
 
+/** Lifecycle enum for F7. Mirrors SECOND_BRAIN_PORT_PLAN §1 + old-spec 02-INBOX §2.1.0. */
+const STATUS_VALUES = new Set(["unprocessed", "thinking", "ready", "processed", "archived"]);
+
 function lintFile(file: string): Finding[] {
   const findings: Finding[] = [];
   const content = readFileSync(file, "utf-8");
   const { fm, body, raw } = parseFrontmatter(content);
   const vault = isVaultContent(file);
+  const inRaw = /\/inbox\/raw\//.test(file);
 
   // F1 — applies to vault content only. Generic markdown (READMEs, SKILL.md, docs)
   // legitimately has no frontmatter.
@@ -109,8 +122,10 @@ function lintFile(file: string): Finding[] {
   }
 
   // F2 — `type:` is SecondBrain-specific (KnowledgeRipple classifier per §12).
-  // Only applies to vault content.
-  if (vault && !fm.type) {
+  // Vault content outside inbox/raw/ must carry it. inbox/raw/ is the one
+  // exemption: capture intentionally writes partial frontmatter and /process
+  // fills the type in.
+  if (vault && !inRaw && !fm.type) {
     findings.push({ code: "F2", severity: "warn", message: "frontmatter.type missing (KnowledgeRipple classifier needs it)", file });
   }
 
@@ -141,6 +156,18 @@ function lintFile(file: string): Finding[] {
     findings.push({ code: "F6", severity: "warn", message: `unbalanced wikilinks: ${opens} \`[[\` vs ${closes} \`]]\``, file });
   }
 
+  // F7 — status enum. Vault content must carry a `status:` from the lifecycle
+  // enum. Workflows that create/move files run this in --enforce mode so the
+  // pipeline can't produce a bad-state note. Hand-edits only see the warning.
+  if (vault) {
+    const status = fm.status;
+    if (status === undefined) {
+      findings.push({ code: "F7a", severity: "warn", message: "frontmatter.status missing — expected one of: unprocessed | thinking | ready | processed | archived", file });
+    } else if (typeof status !== "string" || !STATUS_VALUES.has(status)) {
+      findings.push({ code: "F7b", severity: "warn", message: `frontmatter.status is not a member of the lifecycle enum (got: ${JSON.stringify(status)}; expected: unprocessed|thinking|ready|processed|archived)`, file });
+    }
+  }
+
   return findings;
 }
 
@@ -160,10 +187,11 @@ function walkMd(p: string): string[] {
 function main() {
   const args = process.argv.slice(2);
   const jsonMode = args.includes("--json");
+  const enforce = args.includes("--enforce");
   const targets = args.filter((a) => !a.startsWith("--"));
 
   if (targets.length === 0) {
-    console.error("usage: bun LintFrontmatter.ts <file.md|dir> [--json]");
+    console.error("usage: bun LintFrontmatter.ts <file.md|dir> [--json] [--enforce]");
     process.exit(0); // advisory: even usage error is exit 0
   }
 
@@ -176,21 +204,28 @@ function main() {
   const allFindings: Finding[] = [];
   for (const f of files) allFindings.push(...lintFile(f));
 
+  const warnCount = allFindings.filter((f) => f.severity === "warn").length;
+  const willBlock = enforce && warnCount > 0;
+
   if (jsonMode) {
-    console.log(JSON.stringify({ files: files.length, findings: allFindings }, null, 2));
+    console.log(JSON.stringify({ files: files.length, findings: allFindings, enforce, blocked: willBlock }, null, 2));
   } else {
     if (allFindings.length === 0) {
-      console.error(`✓ ${files.length} file(s) clean`);
+      console.error(`✓ ${files.length} file(s) clean${enforce ? " (--enforce)" : ""}`);
     } else {
       for (const f of allFindings) {
         const tag = f.severity === "warn" ? "WARN" : "info";
         console.error(`  [${tag}] ${f.code} ${f.file}: ${f.message}`);
       }
-      console.error(`\n${allFindings.length} advisory finding(s) across ${files.length} file(s) — exit 0 (advisory)`);
+      const mode = enforce ? "enforce" : "advisory";
+      const verdict = willBlock
+        ? `${warnCount} warn finding(s) — exit 1 (--enforce)`
+        : `${allFindings.length} finding(s) across ${files.length} file(s) — exit 0 (${mode})`;
+      console.error(`\n${verdict}`);
     }
   }
 
-  process.exit(0); // always advisory
+  process.exit(willBlock ? 1 : 0);
 }
 
 main();

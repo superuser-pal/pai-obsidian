@@ -94,6 +94,7 @@ Every note that lands in `inbox/ready/` or `domains/.../02_PAGES/` has at minimu
 ```yaml
 ---
 type: <People|Companies|Ideas|Research|Note|Daily>
+status: <unprocessed|thinking|ready|processed|archived>
 created: 2026-05-19 02:32 PM
 source: <url|file:path|capture|brain-dump>
 discovered: 2026-05-19 02:32 PM
@@ -101,11 +102,44 @@ tags: [tag1, tag2]
 ---
 ```
 
+Notes in `inbox/raw/` and `thinking/` carry `status:` (and `tags:`) but may
+omit `type:` until `/process` classifies them.
+
 **Timestamp rule:** `created` and `discovered` use local time formatted as `date +"%Y-%m-%d %I:%M %p"` (e.g. `2026-05-20 08:23 PM`). Never ISO 8601, never UTC Z suffix.
 
 `type` drives the [[Entity]] classification in [Tools/ResolveDomain.ts](Tools/ResolveDomain.ts)
-and [Tools/KnowledgeRipple.ts](Tools/KnowledgeRipple.ts). [Tools/LintFrontmatter.ts](../Qmd/Tools/LintFrontmatter.ts)
-checks these advisory (never blocking) — see plan §13 R2.
+and [Tools/KnowledgeRipple.ts](Tools/KnowledgeRipple.ts).
+
+### `status:` — lifecycle enum
+
+Five canonical values; each workflow sets the right one as the note moves:
+
+| Stage | Folder | `status:` value | Set by |
+|---|---|---|---|
+| Captured, unshaped | `inbox/raw/` | `unprocessed` | `/capture`, `/brain-dump` |
+| Captured, reasoning | `thinking/` | `thinking` | `/capture --thinking` |
+| Shaped, awaiting filing | `inbox/ready/` | `ready` | `/process` |
+| Filed to a domain | `domains/<T>/02_PAGES/` | `processed` | `/distribute`, `/quick-dump`, `/save` |
+| Entity note | `domains/Knowledge/` | `processed` | `KnowledgeRipple` |
+| Retired | `domains/<T>/03_ARCHIVE/` | `archived` | archive workflow |
+
+`status:` is the human-readable mirror of the queue state in
+[Tools/QueueUpdate.ts](Tools/QueueUpdate.ts) (`pending`/`done`); the queue stays
+the machine-readable source of truth. Both update in lockstep during
+`/process` and `/distribute`.
+
+### Lint policy — advisory by default, enforced in the pipeline
+
+[Tools/LintFrontmatter.ts](../Qmd/Tools/LintFrontmatter.ts) checks these fields.
+By default it is advisory (warnings to stderr, exit 0) — preserves invariant i2,
+no PostToolUse gate, hand-edits in Obsidian never get blocked.
+
+Every SecondBrain workflow that CREATES or MOVES a file invokes the linter with
+`--enforce` after the write. In enforce mode any `warn`-severity finding
+(missing/invalid `status:`, missing `type:` outside `inbox/raw/`, bad timestamp,
+unbalanced wikilinks, etc.) causes a non-zero exit, halting the pipeline before
+a bad-state note ships. `info` findings (e.g. missing `source:` on an inbox
+note) stay non-blocking.
 
 ## Tools
 

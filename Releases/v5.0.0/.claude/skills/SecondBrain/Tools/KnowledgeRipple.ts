@@ -27,6 +27,7 @@
  *
  *   ---
  *   type: company
+ *   status: processed
  *   created: 2026-06-09 02:14 PM
  *   source: secondbrain
  *   seen_in: domains/Work/02_PAGES/2026-05-19-test-note.md
@@ -169,6 +170,7 @@ export async function ripple(notePath: string, opts: { dryRun?: boolean } = {}):
     const note = [
       "---",
       `type: ${type}`,
+      "status: processed",
       `created: ${localTimestamp()}`,
       "source: secondbrain",
       `seen_in: ${seenIn}`,

@@ -22,14 +22,24 @@ next `[category]` marker or end of input.
    - Each match yields `{category, body}`.
 2. **For each chunk:**
    - Slug: `<YYYY-MM-DD>-<category>-<n>` where `<n>` increments per session.
-   - Write `inbox/raw/<slug>.md` with this minimal shape:
+   - Write `inbox/raw/<slug>.md` with this minimal shape (run
+     `date +"%Y-%m-%d %I:%M %p"` for `discovered:`):
      ```markdown
      ---
+     status: unprocessed
+     source: brain-dump
+     discovered: <local YYYY-MM-DD HH:MM AM/PM>
      tags: [brain-dump, <category>]
      ---
 
      <body>
      ```
+   - Validate the write (enforce):
+     ```
+     bun .claude/skills/Qmd/Tools/LintFrontmatter.ts inbox/raw/<slug>.md --enforce
+     ```
+     On non-zero exit, surface the linter output, leave the file in place,
+     and halt the batch.
    - Log event:
      ```
      bun .claude/skills/SecondBrain/Tools/IngestLog.ts \

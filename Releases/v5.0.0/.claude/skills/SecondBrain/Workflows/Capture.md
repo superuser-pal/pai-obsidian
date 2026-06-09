@@ -1,7 +1,10 @@
 # Capture Workflow
 
 Drop arbitrary input into `inbox/raw/` (or `thinking/` with `--thinking`).
-Pure capture — no classification, no frontmatter, no entity ripple.
+Pure capture — no classification, no entity ripple. Writes a minimal
+frontmatter block carrying only `status:`, `source:`, `discovered:`, `tags:`
+so the note enters the lifecycle in a known state; `/process` fills in
+`type:` and the rest.
 
 ## Input shapes
 
@@ -18,17 +21,36 @@ Pure capture — no classification, no frontmatter, no entity ripple.
    - Title source: first H1 in content → first 60 chars of content → `untitled`.
    - Slug = `<YYYY-MM-DD>-<lowercase-kebab-of-title>`.
    - If a file with the same slug exists, append `-<n>` until unique.
-3. **Resolve target dir:**
-   - Default: `${repoRoot}/inbox/raw/`
-   - With `--thinking`: `${repoRoot}/thinking/`
-4. **Write file** at `<target>/<slug>.md`. Content is the raw input (no frontmatter).
-5. **Log the event:**
+3. **Resolve target dir + status:**
+   - Default: `${repoRoot}/inbox/raw/`, `status: unprocessed`
+   - With `--thinking`: `${repoRoot}/thinking/`, `status: thinking`
+4. **Write file** at `<target>/<slug>.md` with this minimal frontmatter
+   followed by the raw input as the body (run `date +"%Y-%m-%d %I:%M %p"`
+   for `discovered:`):
+   ```yaml
+   ---
+   status: <unprocessed|thinking>
+   source: <url|file:path|capture>
+   discovered: <local YYYY-MM-DD HH:MM AM/PM>
+   tags: [capture]
+   ---
+
+   <raw input body>
+   ```
+   No `type:` — `/process` classifies. No further fields.
+5. **Validate the write (enforce):**
+   ```
+   bun .claude/skills/Qmd/Tools/LintFrontmatter.ts <target>/<slug>.md --enforce
+   ```
+   On non-zero exit, surface the linter output, leave the file in place for
+   inspection, and halt. (Per plan: the pipeline never ships a bad-state note.)
+6. **Log the event:**
    ```
    bun .claude/skills/SecondBrain/Tools/IngestLog.ts \
      --action capture \
      --source-note inbox/raw/<slug>.md
    ```
-6. **Report** the file path to the user.
+7. **Report** the file path to the user.
 
 ## Optional structuring — 10-category observation taxonomy
 
@@ -90,7 +112,11 @@ this to `thinking/`, sound right?"* — so the routing is auditable.
 
 ## Not this workflow's job
 
-- Frontmatter generation (`/process` does that).
-- Classification / routing (`/quick-dump` or `/save` if you want one-shot).
+- Classification (`type:`) — `/process` does that.
+- Routing to a domain (`/quick-dump` or `/save` if you want one-shot).
 - Wikilink resolution.
 - Voice notification (DA does that at the response layer).
+
+Capture writes only the lifecycle-minimum frontmatter (`status:`, `source:`,
+`discovered:`, `tags:`) so the note enters the pipeline in a known state.
+The rest is filled in later.
