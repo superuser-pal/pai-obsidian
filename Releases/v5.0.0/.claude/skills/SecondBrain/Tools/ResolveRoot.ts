@@ -13,10 +13,11 @@
  *   - PAI dir — where PAI runtime state lives (`PAI/MEMORY/…`). From `$PAI_DIR`,
  *     falling back to `$HOME/.claude`.
  *
- * The split is safe because no consumer mixes the two: vault-content paths derive
- * from the vault root; the five `memory*` paths derive from the PAI dir. Every
- * other SecondBrain tool imports `vaultPaths()` and reads named fields only.
- * No tool hardcodes a `/Users/…` path.
+ * The split is safe because no consumer mixes the two: vault-content paths
+ * (including `knowledgeHome`, where typed entity notes live as of Phase 11)
+ * derive from the vault root; the `memory*` runtime paths derive from the PAI
+ * dir. Every other SecondBrain tool imports `vaultPaths()` and reads named
+ * fields only. No tool hardcodes a `/Users/…` path.
  *
  * Usage:
  *   bun ResolveRoot.ts            # prints the vault root
@@ -58,10 +59,10 @@ export function resolvePaiDir(): string {
 /**
  * Absolute paths SecondBrain writes against.
  *
- * Vault-content fields (`root`, `inboxRaw`…`bases`) derive from the VAULT root.
- * Runtime fields (`memory*`) derive from the PAI dir. Field names and shapes are
- * identical to upstream — only the `memory*` derivation moved from `${root}/.claude`
- * to `${paiDir}`, so existing consumers need no changes.
+ * Vault-content fields (`root`, `inboxRaw`…`bases`, `knowledgeHome`) derive from
+ * the VAULT root. Runtime fields (`memory*`) derive from the PAI dir. Phase 11
+ * dropped `memoryHarvestQueue` and added vault-derived `knowledgeHome`, so typed
+ * entities now live in the vault (the single source of truth), not PAI runtime.
  */
 export async function vaultPaths(): Promise<{
   root: string;
@@ -71,11 +72,11 @@ export async function vaultPaths(): Promise<{
   plan: string;
   domains: string;
   bases: string;
+  knowledgeHome: string;
   memoryState: string;
   memoryObservability: string;
   memoryArchive: string;
   memoryLearningReflections: string;
-  memoryHarvestQueue: string;
 }> {
   const root = await resolveRoot();
   const pai = resolvePaiDir();
@@ -87,11 +88,16 @@ export async function vaultPaths(): Promise<{
     plan: `${root}/plan`,
     domains: `${root}/domains`,
     bases: `${root}/bases`,
+    // Phase 11 — vault as single source of truth. Typed entity notes
+    // (type: person|company|idea|research) land here, in the VAULT, and are
+    // queried via bases/Knowledge.base. This replaces the old harvest-queue
+    // handoff to PAI/MEMORY/KNOWLEDGE (which the harvester never even consumed,
+    // since the ripple wrote .md and the harvester only read .json).
+    knowledgeHome: `${root}/domains/Knowledge`,
     memoryState: `${pai}/PAI/MEMORY/STATE`,
     memoryObservability: `${pai}/PAI/MEMORY/OBSERVABILITY`,
     memoryArchive: `${pai}/PAI/MEMORY/ARCHIVE/secondbrain-snapshots`,
     memoryLearningReflections: `${pai}/PAI/MEMORY/LEARNING/REFLECTIONS`,
-    memoryHarvestQueue: `${pai}/PAI/MEMORY/KNOWLEDGE/_harvest-queue`,
   };
 }
 

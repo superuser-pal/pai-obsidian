@@ -1,46 +1,66 @@
 #!/usr/bin/env bun
 /**
- * KnowledgeRipple.ts — extract [[Entity]] wikilinks from a note and emit stubs
- * into `.claude/PAI/MEMORY/KNOWLEDGE/_harvest-queue/<slug>.md` for PAI's existing
- * KnowledgeHarvester pipeline to consume.
+ * KnowledgeRipple.ts — extract [[Entity]] wikilinks from a note and upsert a
+ * typed entity note for each one directly into the VAULT.
  *
- * Per SECOND_BRAIN_MIGRATION_v2.md §12 + invariant i8: this tool NEVER writes to
- * KNOWLEDGE/{People,Companies,Ideas,Research}/ directly. Those typed paths are
- * owned by PAI's KnowledgeHarvester.ts — we only seed the queue.
+ * Phase 11 (vault as single source of truth): this tool used to write .md stubs
+ * into `$PAI_DIR/PAI/MEMORY/KNOWLEDGE/_harvest-queue/` for PAI's harvester to
+ * consume — but the harvester only ever read `.json`, so those stubs were never
+ * picked up (a dead handoff). It now writes the entity note straight into the
+ * vault at `$VAULT_DIR/domains/Knowledge/<slug>.md` with `type:` frontmatter,
+ * where it is immediately visible in Obsidian and queryable via
+ * `bases/Knowledge.base`. No queue, no separate typed graph.
  *
  * Classification (heuristic, refinable):
  *
- *   - `[[Alice Smith]]` (PascalCase, 2+ tokens) → People
- *   - `[[AcmeCorp]]` / `[[Acme Corp Inc]]` / contains Corp|Inc|Co.|LLC|Ltd → Companies
- *   - `[[idea: ...]]` prefix or note's frontmatter.type === "Ideas" → Ideas
- *   - `[[paper: ...]]` prefix / arxiv-URL nearby / note's frontmatter.type === "Research" → Research
- *   - Otherwise: Ideas with `pending-classification: true` (user can fix later)
+ *   - `[[Alice Smith]]` (PascalCase, 2+ tokens) → person
+ *   - `[[AcmeCorp]]` / `[[Acme Corp Inc]]` / contains Corp|Inc|Co.|LLC|Ltd → company
+ *   - `[[idea: ...]]` prefix or note's frontmatter.type === "idea" → idea
+ *   - `[[paper: ...]]` prefix / note's frontmatter.type === "research" → research
+ *   - Otherwise: idea with `pending-classification: true` (user can fix later)
  *
- * The stub file shape:
+ * Dedup: if a note with the same slug already exists ANYWHERE under the vault's
+ * domains/ (not just the default landing folder), the entity is skipped — moving
+ * an entity note out of domains/Knowledge/ does not cause it to be re-created.
+ *
+ * The entity note shape (canonical schema — see bases/Knowledge.base):
  *
  *   ---
- *   type: People
+ *   type: company
+ *   created: 2026-06-09 02:14 PM
  *   source: secondbrain
  *   seen_in: domains/Work/02_PAGES/2026-05-19-test-note.md
- *   discovered: 2026-05-19T14:32:11Z
  *   pending-classification: false
+ *   tags: []
+ *   related: []
+ *   quality: 5
  *   ---
- *   # Alice Example
+ *   # Acme Corp
  *
  * Usage:
- *   bun KnowledgeRipple.ts <note.md>           # emit stubs, exit 0
+ *   bun KnowledgeRipple.ts <note.md>           # upsert entity notes, exit 0
  *   bun KnowledgeRipple.ts <note.md> --dry-run # print what would be written
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { dirname, relative } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { relative } from "node:path";
 import { vaultPaths } from "./ResolveRoot.ts";
 import { logEvent } from "./IngestLog.ts";
 
-type EntityType = "People" | "Companies" | "Ideas" | "Research";
+type EntityType = "person" | "company" | "idea" | "research";
 
 const COMPANY_TOKENS = ["Corp", "Inc", "Co.", "LLC", "Ltd", "GmbH", "S.A.", "B.V."];
 const PEOPLE_RE = /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+$/;
+const ENTITY_TYPES: EntityType[] = ["person", "company", "idea", "research"];
+
+/** Local timestamp `YYYY-MM-DD HH:MM AM/PM` — the fork's frontmatter contract. */
+function localTimestamp(d = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  let h = d.getHours();
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(h)}:${pad(d.getMinutes())} ${ampm}`;
+}
 
 function parseFrontmatter(content: string): { fm: Record<string, unknown>; body: string } {
   const lines = content.split("\n");
@@ -67,33 +87,57 @@ function extractWikilinks(body: string): string[] {
 function classify(entity: string, noteFm: Record<string, unknown>): { type: EntityType; pending: boolean } {
   const lower = entity.toLowerCase();
 
-  if (lower.startsWith("idea:")) return { type: "Ideas", pending: false };
-  if (lower.startsWith("paper:")) return { type: "Research", pending: false };
-  if (lower.startsWith("research:")) return { type: "Research", pending: false };
+  if (lower.startsWith("idea:")) return { type: "idea", pending: false };
+  if (lower.startsWith("paper:")) return { type: "research", pending: false };
+  if (lower.startsWith("research:")) return { type: "research", pending: false };
 
-  if (COMPANY_TOKENS.some((t) => entity.includes(t))) return { type: "Companies", pending: false };
-  if (PEOPLE_RE.test(entity)) return { type: "People", pending: false };
+  if (COMPANY_TOKENS.some((t) => entity.includes(t))) return { type: "company", pending: false };
+  if (PEOPLE_RE.test(entity)) return { type: "person", pending: false };
 
-  // Single-word PascalCase or CamelCase with cap-acronym → likely Company
+  // Single-word PascalCase or CamelCase with cap-acronym → likely company
   if (/^[A-Z]{2,}/.test(entity) || /^[A-Z][a-z]+[A-Z]/.test(entity)) {
-    return { type: "Companies", pending: false };
+    return { type: "company", pending: false };
   }
 
-  // Inherit from note's frontmatter type if it's an entity type
-  const noteType = String(noteFm.type ?? "").trim();
-  if (["People", "Companies", "Ideas", "Research"].includes(noteType)) {
+  // Inherit from the source note's frontmatter type if it's an entity type
+  const noteType = String(noteFm.type ?? "").trim().toLowerCase();
+  if (ENTITY_TYPES.includes(noteType as EntityType)) {
     return { type: noteType as EntityType, pending: false };
   }
 
-  return { type: "Ideas", pending: true };
+  return { type: "idea", pending: true };
 }
 
 function slugify(entity: string): string {
   return entity
     .replace(/^(idea|paper|research):\s*/i, "")
     .trim()
-    .replace(/[^A-Za-z0-9]+/g, "-")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+/** True if a `<slug>.md` note already exists anywhere under the vault's domains/. */
+function noteExistsInVault(domainsDir: string, slug: string): boolean {
+  const target = `${slug}.md`.toLowerCase();
+  const walk = (dir: string): boolean => {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        if (entry.name.startsWith(".")) continue;
+        if (walk(`${dir}/${entry.name}`)) return true;
+        continue;
+      }
+      if (entry.name.toLowerCase() === target) return true;
+    }
+    return false;
+  };
+  return walk(domainsDir);
 }
 
 export async function ripple(notePath: string, opts: { dryRun?: boolean } = {}): Promise<{ written: string[]; skipped: string[] }> {
@@ -101,9 +145,9 @@ export async function ripple(notePath: string, opts: { dryRun?: boolean } = {}):
   const { fm, body } = parseFrontmatter(content);
   const wikilinks = extractWikilinks(body);
   const paths = await vaultPaths();
-  const queueDir = paths.memoryHarvestQueue;
+  const knowledgeDir = paths.knowledgeHome;
 
-  if (!opts.dryRun && !existsSync(queueDir)) mkdirSync(queueDir, { recursive: true });
+  if (!opts.dryRun && !existsSync(knowledgeDir)) mkdirSync(knowledgeDir, { recursive: true });
 
   const written: string[] = [];
   const skipped: string[] = [];
@@ -112,33 +156,39 @@ export async function ripple(notePath: string, opts: { dryRun?: boolean } = {}):
   for (const entity of wikilinks) {
     const { type, pending } = classify(entity, fm);
     const slug = slugify(entity);
-    const stubPath = `${queueDir}/${slug}.md`;
+    if (!slug) continue;
+    const notePathOut = `${knowledgeDir}/${slug}.md`;
 
-    if (existsSync(stubPath)) {
-      skipped.push(stubPath);
+    // Dedup against the whole vault, not just the landing folder.
+    if (noteExistsInVault(paths.domains, slug)) {
+      skipped.push(notePathOut);
       continue;
     }
 
-    const stub = [
+    const title = entity.replace(/^(idea|paper|research):\s*/i, "");
+    const note = [
       "---",
       `type: ${type}`,
+      `created: ${localTimestamp()}`,
       "source: secondbrain",
       `seen_in: ${seenIn}`,
-      `discovered: ${new Date().toISOString()}`,
       `pending-classification: ${pending}`,
+      "tags: []",
+      "related: []",
+      "quality: 5",
       "---",
-      `# ${entity.replace(/^(idea|paper|research):\s*/i, "")}`,
+      `# ${title}`,
       "",
     ].join("\n");
 
     if (opts.dryRun) {
-      console.log(`---- DRY-RUN ${stubPath} ----`);
-      console.log(stub);
+      console.log(`---- DRY-RUN ${notePathOut} ----`);
+      console.log(note);
     } else {
-      writeFileSync(stubPath, stub, "utf-8");
+      writeFileSync(notePathOut, note, "utf-8");
       await logEvent({ action: "ripple", source_note: seenIn, entity, type });
     }
-    written.push(stubPath);
+    written.push(notePathOut);
   }
 
   return { written, skipped };
