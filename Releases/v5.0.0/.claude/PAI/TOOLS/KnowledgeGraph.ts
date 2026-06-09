@@ -33,10 +33,24 @@ import * as path from "path";
 
 const HOME = process.env.HOME!;
 const PAI_DIR = process.env.PAI_DIR || path.join(HOME, ".claude", "PAI");
-const KNOWLEDGE_DIR = path.join(PAI_DIR, "MEMORY", "KNOWLEDGE");
-const DOMAINS = ["People", "Companies", "Ideas", "Research"];
+
+// Phase 11 — vault as single source of truth. The graph is built over the
+// Obsidian vault's entity notes (type: person|company|idea|research) instead
+// of the old PAI/MEMORY/KNOWLEDGE typed graph. Folder layout is irrelevant;
+// the `type:` frontmatter determines membership and the node's domain label.
+function resolveVaultRoot(): string | null {
+  const v = process.env.VAULT_DIR || process.env.OBSIDIAN_VAULT;
+  return v && v.trim() ? v.trim().replace(/\/+$/, "") : null;
+}
+const VAULT_ROOT = resolveVaultRoot();
+const KNOWLEDGE_DIR = VAULT_ROOT ? path.join(VAULT_ROOT, "domains") : "";
+const TYPE_TO_DOMAIN: Record<string, string> = {
+  person: "People",
+  company: "Companies",
+  idea: "Ideas",
+  research: "Research",
+};
 const SKIP_FILES = new Set(["_index.md", "_schema.md", "_log.md"]);
-const SKIP_DIRS = new Set(["_archive", "_embeddings", "_harvest-queue"]);
 
 // ============================================================================
 // Types
@@ -180,25 +194,30 @@ function buildGraph(): KnowledgeGraph {
   const edges: GraphEdge[] = [];
   const adjacency = new Map<string, GraphEdge[]>();
 
-  // Phase 1: Collect all nodes
-  for (const domain of DOMAINS) {
-    const domainDir = path.join(KNOWLEDGE_DIR, domain);
-    if (!fs.existsSync(domainDir)) continue;
-
-    for (const entry of fs.readdirSync(domainDir)) {
-      if (SKIP_FILES.has(entry) || !entry.endsWith(".md")) continue;
-      // Skip subdirectories
-      const fullPath = path.join(domainDir, entry);
-      try {
-        if (!fs.statSync(fullPath).isFile()) continue;
-      } catch {
+  // Phase 1: Collect all nodes — walk the vault's domains/ recursively and
+  // include only entity-typed notes (type: person|company|idea|research).
+  const collect = (dir: string): void => {
+    let entries: ReturnType<typeof fs.readdirSync>;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name.startsWith(".")) continue;
+        collect(fullPath);
         continue;
       }
+      if (SKIP_FILES.has(entry.name) || !entry.name.endsWith(".md")) continue;
 
-      const slug = entry.replace(/\.md$/, "");
       const content = fs.readFileSync(fullPath, "utf-8");
       const fm = parseFrontmatter(content);
+      const type = String(fm.type ?? "").trim().toLowerCase();
+      if (!(type in TYPE_TO_DOMAIN)) continue;
 
+      const slug = entry.name.replace(/\.md$/, "");
       const tags = Array.isArray(fm.tags)
         ? fm.tags.map((t: string) => t.trim().toLowerCase())
         : typeof fm.tags === "string"
@@ -210,14 +229,15 @@ function buildGraph(): KnowledgeGraph {
 
       nodes.set(slug, {
         slug,
-        domain,
+        domain: TYPE_TO_DOMAIN[type]!,
         title: fm.title || slug,
-        type: fm.type || "unknown",
+        type,
         tags,
         path: fullPath,
       });
     }
-  }
+  };
+  if (KNOWLEDGE_DIR) collect(KNOWLEDGE_DIR);
 
   // Helper to ensure adjacency list exists
   function ensureAdj(slug: string): void {
@@ -636,7 +656,7 @@ function cmdStats(): void {
   console.log("\n\u{1F4CA} Knowledge Graph Statistics");
   console.log("\u2500".repeat(50));
 
-  const domainStr = DOMAINS.map(
+  const domainStr = Object.values(TYPE_TO_DOMAIN).map(
     (d) => `${d}: ${domainCounts[d] || 0}`
   ).join(", ");
   console.log(`  Nodes: ${graph.nodes.size} (${domainStr})`);

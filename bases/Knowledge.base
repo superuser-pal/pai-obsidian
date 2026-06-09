@@ -1,0 +1,86 @@
+# Knowledge.base — typed entity views over the vault.
+#
+# Phase 11 (vault as single source of truth): SecondBrain and the harvest tools
+# write typed entity notes directly into the vault instead of a hidden runtime
+# queue. Each entity note carries `type:` frontmatter:
+#
+#   type: person | company | idea | research
+#
+# Default landing folder is domains/Knowledge/, but notes may live anywhere in
+# the vault — this Base aggregates them by `type:`, not by folder. That is the
+# Obsidian-native query layer that replaces the old MEMORY/KNOWLEDGE typed graph.
+#
+# Canonical entity-note schema:
+#   ---
+#   type: person | company | idea | research
+#   created: 2026-06-09 02:14 PM    # local format (YYYY-MM-DD HH:MM AM/PM)
+#   source: secondbrain | harvest | mine | manual
+#   tags: []
+#   related: []                      # optional [[wikilinks]] to related entities
+#   quality: 5
+#   ---
+
+filters:
+  or:
+    - 'type == "person"'
+    - 'type == "company"'
+    - 'type == "idea"'
+    - 'type == "research"'
+
+properties:
+  type:
+    displayName: "Type"
+  created:
+    displayName: "Created"
+  source:
+    displayName: "Source"
+  quality:
+    displayName: "Quality"
+
+views:
+  - type: table
+    name: "People"
+    filters:
+      and:
+        - 'type == "person"'
+    order:
+      - file.name
+      - tags
+      - created
+      - source
+  - type: table
+    name: "Companies"
+    filters:
+      and:
+        - 'type == "company"'
+    order:
+      - file.name
+      - tags
+      - created
+      - source
+  - type: table
+    name: "Ideas"
+    filters:
+      and:
+        - 'type == "idea"'
+    order:
+      - file.name
+      - tags
+      - created
+      - quality
+  - type: table
+    name: "Research"
+    filters:
+      and:
+        - 'type == "research"'
+    order:
+      - file.name
+      - tags
+      - created
+      - quality
+  - type: cards
+    name: "All Entities"
+    order:
+      - file.name
+      - type
+      - tags

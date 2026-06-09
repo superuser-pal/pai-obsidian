@@ -5,9 +5,10 @@
  * ============================================================================
  *
  * PURPOSE:
- * Given a query string, searches all markdown files in MEMORY/KNOWLEDGE/
- * (People/, Companies/, Ideas/, Research/), ranks by BM25-lite relevance,
- * and returns compressed summaries of the top matches within a token budget.
+ * Given a query string, searches the Obsidian vault ($VAULT_DIR/domains/**)
+ * for entity notes (type: person|company|idea|research), ranks by BM25-lite
+ * relevance, and returns compressed summaries within a token budget.
+ * (Phase 11: knowledge lives in the vault, not PAI/MEMORY/KNOWLEDGE.)
  *
  * USAGE:
  *   bun MemoryRetriever.ts "query string"                    # Search, return compressed results
@@ -25,7 +26,7 @@
  *   --raw flag skips compression and returns raw excerpts.
  *
  * STORAGE:
- *   Reads MEMORY/KNOWLEDGE/{People,Companies,Ideas,Research}/*.md
+ *   Reads $VAULT_DIR/domains/** entity notes (filtered by type: frontmatter).
  *   NEVER writes or modifies files — read-only tool.
  *
  * ============================================================================
@@ -42,8 +43,18 @@ import { spawnSync } from "child_process";
 
 const HOME = process.env.HOME!;
 const PAI_DIR = process.env.PAI_DIR || path.join(HOME, ".claude", "PAI");
-const KNOWLEDGE_DIR = path.join(PAI_DIR, "MEMORY", "KNOWLEDGE");
-const DOMAINS = ["People", "Companies", "Ideas", "Research"];
+
+// Phase 11 — vault as single source of truth. Knowledge lives in the Obsidian
+// vault as typed notes (`type: person|company|idea|research`), not the old
+// PAI/MEMORY/KNOWLEDGE typed graph. Resolve the vault root and scan its
+// domains/ for entity-typed notes, filtering by `type:` rather than folder.
+function resolveVaultRoot(): string | null {
+  const v = process.env.VAULT_DIR || process.env.OBSIDIAN_VAULT;
+  return v && v.trim() ? v.trim().replace(/\/+$/, "") : null;
+}
+const VAULT_ROOT = resolveVaultRoot();
+const KNOWLEDGE_DIR = VAULT_ROOT ? path.join(VAULT_ROOT, "domains") : "";
+const ENTITY_TYPES = new Set(["person", "company", "idea", "research"]);
 
 // BM25 parameters
 const BM25_K1 = 1.5;
@@ -115,27 +126,39 @@ function parseFrontmatter(content: string): { frontmatter: Frontmatter; body: st
 
 function discoverNotes(): KnowledgeNote[] {
   const notes: KnowledgeNote[] = [];
+  if (!KNOWLEDGE_DIR || !fs.existsSync(KNOWLEDGE_DIR)) return notes;
 
-  for (const domain of DOMAINS) {
-    const domainDir = path.join(KNOWLEDGE_DIR, domain);
-    if (!fs.existsSync(domainDir)) continue;
-
-    const files = fs.readdirSync(domainDir).filter(
-      (f) => f.endsWith(".md") && !f.startsWith("_")
-    );
-
-    for (const file of files) {
-      const filePath = path.join(domainDir, file);
+  // Walk the vault's domains/ recursively; include only entity-typed notes
+  // (type: person|company|idea|research). Folder layout is irrelevant — the
+  // `type:` frontmatter is what makes a note part of the knowledge graph.
+  const walk = (dir: string): void => {
+    let entries: ReturnType<typeof fs.readdirSync>;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name.startsWith(".")) continue;
+        walk(full);
+        continue;
+      }
+      if (!entry.name.endsWith(".md") || entry.name.startsWith("_")) continue;
       try {
-        const content = fs.readFileSync(filePath, "utf-8");
+        const content = fs.readFileSync(full, "utf-8");
         const { frontmatter, body } = parseFrontmatter(content);
+        const type = String(frontmatter.type ?? "").trim().toLowerCase();
+        if (!ENTITY_TYPES.has(type)) continue;
         const wordCount = body.split(/\s+/).filter(Boolean).length;
-        notes.push({ filePath, frontmatter, body, wordCount });
+        notes.push({ filePath: full, frontmatter, body, wordCount });
       } catch {
         // Skip unreadable files
       }
     }
-  }
+  };
+  walk(KNOWLEDGE_DIR);
 
   return notes;
 }
@@ -325,7 +348,7 @@ function formatResults(
   if (results.length === 0) {
     lines.push("  No matching memories found.");
     lines.push("  " + "-".repeat(45));
-    lines.push(`  Searched ${totalSearched} notes across ${DOMAINS.join(", ")}.`);
+    lines.push(`  Searched ${totalSearched} entity notes in the vault knowledge graph.`);
     return lines.join("\n");
   }
 
@@ -375,7 +398,8 @@ OPTIONS:
 
 SEARCH:
   BM25-style keyword matching + tag co-occurrence scoring.
-  Searches MEMORY/KNOWLEDGE/{People,Companies,Ideas,Research}/*.md
+  Searches the Obsidian vault ($VAULT_DIR/domains/**) for entity notes
+  carrying type: person|company|idea|research frontmatter.
 
 COMPRESSION:
   Uses Inference.ts (fast level) for LLM-powered compression.
@@ -430,9 +454,16 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Verify KNOWLEDGE directory exists
+  // Verify the vault is resolvable and its domains/ directory exists
+  if (!VAULT_ROOT) {
+    console.error(
+      "Error: vault not found. Set $VAULT_DIR to your Obsidian vault path " +
+      "(knowledge now lives in the vault, not PAI/MEMORY/KNOWLEDGE)."
+    );
+    process.exit(1);
+  }
   if (!fs.existsSync(KNOWLEDGE_DIR)) {
-    console.error(`Error: Knowledge directory not found: ${KNOWLEDGE_DIR}`);
+    console.error(`Error: vault domains/ directory not found: ${KNOWLEDGE_DIR}`);
     process.exit(1);
   }
 
