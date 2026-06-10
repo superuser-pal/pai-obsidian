@@ -167,6 +167,8 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 | [Tools/ValidateVault.ts](Tools/ValidateVault.ts) | Audit each domain for skeleton, naming, orphan, depth, and frontmatter compliance — advisory by default, `--strict` for CI |
 | [Tools/MapVault.ts](Tools/MapVault.ts) | Rebuild domain INDEX Active Work tables from project frontmatter; propose confirmed renames with inbound `[[wikilink]]` rewrites in lockstep; report true orphans (zero inbound + outbound) |
 | [Tools/ExtractActions.ts](Tools/ExtractActions.ts) | Scan a markdown file for `[action]` blocks (multi-line) — used by `/distribute` to offer confirmed task appends. `[todo]` does NOT extract (Phase 8 vocabulary split) |
+| [Tools/SplitNote.ts](Tools/SplitNote.ts) | Detect (`##` heading count ≥3) and apply a confirmed split of a multi-topic note into per-section pages with `synthesized-from` + bidirectional `## Related` links |
+| [Tools/AbsorbNote.ts](Tools/AbsorbNote.ts) | Atomic absorb of a source note into a target page (snapshot + append + log + delete) — used by `/save` and `/distribute` when the user picks the absorb action |
 
 ## Workflows
 

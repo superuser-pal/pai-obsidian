@@ -119,4 +119,55 @@ If a file in `inbox/ready/` matches an existing `domains/<T>/02_PAGES/<name>`,
 the workflow:
 1. Snapshot the current target.
 2. Diff the two; if identical → skip (mark queue complete).
-3. If different → prompt: replace, merge (open editor), or keep both with `-1` suffix on the new one.
+3. If different → prompt: replace, **absorb**, or keep both with `-1` suffix
+   on the new one. "Absorb" runs `AbsorbNote.ts` (see below) to append the
+   ready file into the existing target as one atomic step.
+
+## Phase 5: Absorb (formalized merge — old-spec §2.3.7)
+
+When the user picks "absorb" in the idempotency prompt, or `qmd vsearch`
+returns a near-duplicate target (≥80% similarity) for a different name,
+delegate to `AbsorbNote.ts`:
+
+```
+bun .claude/skills/SecondBrain/Tools/AbsorbNote.ts \
+  --source inbox/ready/<name> \
+  --target domains/<T>/02_PAGES/<existing>
+```
+
+The tool does four steps atomically:
+1. Snapshot the source to `$PAI_DIR/PAI/MEMORY/ARCHIVE/secondbrain-snapshots/`
+2. Append source body under `## Absorbed from <source-stem>` in target
+3. Log `{action: absorb, source_note, target_note, snapshot}` to IngestLog
+4. Delete the source
+
+Run BEFORE step 3.d (KnowledgeRipple) — the entity ripple should look at
+the absorbed target's new content, not the about-to-be-deleted source.
+
+## Phase 5: Split (offered after distribute — old-spec §2.3.6)
+
+After a successful distribute (file landed at
+`domains/<T>/02_PAGES/<name>`), scan the page for split-eligibility:
+
+```
+bun .claude/skills/SecondBrain/Tools/SplitNote.ts \
+  domains/<T>/02_PAGES/<name> --json
+```
+
+Trigger: `meets_threshold: true` (≥3 top-level `##` headings with content).
+
+If the user confirms the split:
+
+```
+bun .claude/skills/SecondBrain/Tools/SplitNote.ts \
+  domains/<T>/02_PAGES/<name> --apply \
+  --target-dir domains/<T>/02_PAGES/
+```
+
+Each child page gets `synthesized-from: ["[[<source>]]"]` and a `## Related`
+section pointing at siblings + the source. The source's `##` sections are
+removed; the source retains intro + a `## Related` map listing the children.
+Source `status:` stays `processed` (the split doesn't reset its lifecycle).
+
+Don't auto-split — confirmation is mandatory. The threshold (`##` count ≥3)
+is intentionally simple; the user is the final judge of "page-worthy".

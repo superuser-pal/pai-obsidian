@@ -12,8 +12,21 @@ QuickDump. Use when the source is worth a moment of curation.
    - Strip tracker query params from URLs (`?utm_*`, `?ref=*`).
    - Do NOT rewrite tone, condense, or expand. The note keeps its character.
 3. **`qmd update`** then **`qmd query <derived title>`** → check for duplicates:
-   - If a result scores ≥80% similarity, surface to user with: "Looks similar to `<path>` (score X%). Merge, replace, or keep both?"
-   - Default action: keep both (with `dedup-considered: true` in frontmatter).
+   - If a result scores ≥80% similarity, surface to user with: "Looks similar
+     to `<path>` (score X%). **Absorb** into it, replace it, or keep both?"
+   - **Absorb** (Phase 12 §5 — formalized) → delegate to `AbsorbNote.ts`:
+     ```
+     bun .claude/skills/SecondBrain/Tools/AbsorbNote.ts \
+       --source <staged-save-path> \
+       --target <existing-page>
+     ```
+     The tool snapshots the source, appends under
+     `## Absorbed from <source-stem>` in target, logs the event, and deletes
+     the source — atomically. Skip remaining Save steps (7–11) for this
+     input; report the absorb result.
+   - **Replace** → overwrite the existing page with the staged content.
+   - **Keep both** → default. Mark `dedup-considered: true` in frontmatter
+     and proceed with steps 4+ to land at a fresh path.
 4. **Wikilink resolution** — for each `[[X]]` already in the body:
    - `qmd query "<X>"` → if a top-1 match exists with score ≥85%, leave as-is.
    - If a partial match exists (e.g., `[[Alice]]` → `Alice Example`), prompt user to disambiguate.

@@ -36,7 +36,9 @@ export type IngestEvent = {
     | "open-day"
     | "close-day"
     | "create-domain"
-    | "harvest";
+    | "harvest"
+    | "absorb"
+    | "split";
   source_note?: string;
   target_note?: string;
   entity?: string;
