@@ -166,6 +166,7 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 | [Tools/QmdUpdate.ts](Tools/QmdUpdate.ts) | Re-index vault collections; called by workflows before first search |
 | [Tools/ValidateVault.ts](Tools/ValidateVault.ts) | Audit each domain for skeleton, naming, orphan, depth, and frontmatter compliance — advisory by default, `--strict` for CI |
 | [Tools/MapVault.ts](Tools/MapVault.ts) | Rebuild domain INDEX Active Work tables from project frontmatter; propose confirmed renames with inbound `[[wikilink]]` rewrites in lockstep; report true orphans (zero inbound + outbound) |
+| [Tools/ExtractActions.ts](Tools/ExtractActions.ts) | Scan a markdown file for `[action]` blocks (multi-line) — used by `/distribute` to offer confirmed task appends. `[todo]` does NOT extract (Phase 8 vocabulary split) |
 
 ## Workflows
 

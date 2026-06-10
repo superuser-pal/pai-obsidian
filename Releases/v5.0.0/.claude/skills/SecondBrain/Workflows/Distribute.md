@@ -52,7 +52,42 @@ entities, preview cascade.
    research) — visible in Obsidian and queryable via `bases/Knowledge.base`.
    `skipped` are entities that already exist somewhere in the vault.
 
-   ### e. Cascade preview (NOT auto-applied)
+   ### e. Action extraction (NOT auto-applied — confirmed per action)
+
+   Per Phase 12 §4 / old-spec §2.3.4: distributed notes get scanned for
+   `[action]` markers. Only `[action]` extracts; `[todo]` stays inline
+   (Phase 8 vocabulary split).
+
+   ```
+   bun .claude/skills/SecondBrain/Tools/ExtractActions.ts \
+     domains/<T>/02_PAGES/<name> --json
+   ```
+
+   If `actions` is non-empty, for each action:
+
+   1. Pick a target file. Default candidates, in order:
+      - The note's `domain:` frontmatter → choose a `01_PROJECTS/PROJECT_*.md`
+        in that domain (prompt user with the list of project basenames).
+      - Fallback: `domains/<T>/01_PROJECTS/AD_HOC_TASKS.md` (create if
+        missing — `Skill("ProjectManagement", "TaskAdd: <T> <text>")` covers
+        both paths).
+   2. Compute the source tag from the chosen project file:
+      - `domains/<T>/01_PROJECTS/PROJECT_<NAME>.md` → `#<t>/<NAME>`
+        (domain folder lowercased; NAME is the suffix after `PROJECT_`)
+      - `domains/<T>/01_PROJECTS/AD_HOC_TASKS.md`  → `#<t>/AD_HOC`
+      Matches `Skill("ProjectManagement", "TaskSync")`'s tag convention.
+   3. Append to the chosen file (under the project's `### To Do` section, or
+      `## Active` for `AD_HOC_TASKS.md`):
+      ```
+      - [ ] <action text> #todo #<t>/<NAME>
+      ```
+   4. Confirm with the user before each append.
+
+   After all actions are appended (or none confirmed), call
+   `Skill("ProjectManagement", "TaskSync")` so `dashboards/TASKS.md` reflects
+   the new tasks. If no actions, skip both steps.
+
+   ### f. Cascade preview (NOT auto-applied)
    ```
    qmd query "[[<title>]]"
    ```
@@ -61,7 +96,7 @@ entities, preview cascade.
    - For each `y`, perform a single Edit that ADDS the wikilink at an appropriate point.
    - For `n`, leave that page untouched.
 
-   ### f. Queue + log
+   ### g. Queue + log
    ```
    bun .claude/skills/SecondBrain/Tools/QueueUpdate.ts complete inbox/ready/<name> --target domains/<T>/02_PAGES/<name>
    bun .claude/skills/SecondBrain/Tools/IngestLog.ts \
