@@ -63,6 +63,25 @@ next `[category]` marker or end of input.
 
 ## Recognized categories (informational, not enforced)
 
-`idea`, `observation`, `todo`, `question`, `note`, `bookmark`, `quote`, `decision`,
-`risk`, `learning`, `gripe`. Unknown categories are written as-is (the tag becomes
-the literal category string).
+Merged old-spec + fork union (see [Capture.md](Capture.md) for the same table
+with descriptions):
+
+`fact`, `idea`, `decision`, `technique`, `requirement`, `question`, `insight`,
+`problem`, `solution`, `action`, `observation`, `todo`, `note`, `bookmark`,
+`quote`, `risk`, `learning`, `gripe`.
+
+Unknown categories are written as-is (the tag becomes the literal category
+string) — the taxonomy is open, never enforced.
+
+### `[action]` and `[todo]` are distinct
+
+Only `[action]` is extracted into a project's task list by `/distribute`
+(Phase 4). `[todo]` is preserved inline with the `#todo` tag and stays
+surfaced via tag search in Obsidian — no auto-routing. Use:
+
+- `[action]` — task you want the project task system to pick up
+- `[todo]` — inline reminder you'll handle yourself
+
+This distinction matters because `/brain-dump` writes the `category` into
+`tags:`, and `/distribute`'s action-extraction step matches on the literal
+token `action`. Misusing `[todo]` won't trigger extraction.

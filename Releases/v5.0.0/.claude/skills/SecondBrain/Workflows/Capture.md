@@ -73,9 +73,9 @@ categories from the migrated capture workflow):
 | `[insight]` | Realizations, pattern recognition |
 | `[problem]` | Issues, pain points |
 | `[solution]` | Fixes, workarounds |
-| `[action]` | Task items |
+| `[action]` | Task that should be extracted into a project file by `/distribute` |
 | `[observation]` | Neutral noticing — pre-classification |
-| `[todo]` | Action item with `#todo` tag |
+| `[todo]` | Inline reminder, stays as `#todo` text — NOT extracted as a task |
 | `[note]` | Generic note, no other category fits |
 | `[bookmark]` | Save-for-later link or reference |
 | `[quote]` | Verbatim quoted text |
@@ -86,6 +86,20 @@ categories from the migrated capture workflow):
 Other category names are accepted verbatim — the taxonomy is open. For
 *atomic* extraction (one file per `[category]` block) use `/brain-dump`; this
 workflow preserves the original input as a single file.
+
+### `[action]` vs `[todo]` — what `/distribute` does with each
+
+Phase 4 (action extraction) only acts on `[action]` markers. When a note
+lands in `domains/<T>/02_PAGES/`, `/distribute` scans for `[action]` lines
+and offers (confirmation-gated) to append them as Obsidian Tasks-format
+checkboxes in the domain's relevant `01_PROJECTS/PROJECT_*.md` file. A
+`[todo]` marker just becomes inline content tagged `#todo` — it stays
+where the user wrote it, surfaced via tag search in Obsidian but never
+auto-routed into a project's task list.
+
+Use `[action]` for things you want the task system to pick up. Use
+`[todo]` for "remember to mention this", reminders, or things you'll
+chase down by hand.
 
 ## Destination — inbox vs. thinking/
 
