@@ -17,9 +17,8 @@ do, plus four high-value ports. This plan turns those into executable phases.
 
 - **Old spec:** *enforced + registered + page-centric.* Every note carries a `status:` enum, hooks
   hard-validate schemas, domains are registered in CLAUDE.md with detection signals, distribute has
-  Split/Absorb/Action-extraction. The wiki **is** the set of domain pages.
-- **Current fork:** *advisory + heuristic + entity-graph.* Frontmatter lint is advisory (invariant
-  i2, never blocks), domain detection is heuristic (`ResolveDomain` wikilink margin), and — post
+  Split/Absorb/Action-extraction. The wiki **is** the set oA
+  veDomain` wikilink margin), and — post
   Phase 11 — a **typed entity graph** (`domains/Knowledge/` + `bases/Knowledge.base`, types
   person|company|idea|research) is built automatically from `[[entities]]`.
 
@@ -277,6 +276,31 @@ Phase 8 (capture vocabulary)         ← do alongside Phase 4
 Phases 1–4 are the high-value core. 5–8 are depth/polish.
 
 ---
+
+## Phase 7 — philosophy decisions resolved (2026-06-10)
+
+Two items were flagged in the plan as genuine philosophy forks. After
+operator review during Phase 7 execution:
+
+- **§7.1 Domain registration in `CLAUDE.md` with detection signals — NOT
+  adopted.** The fork stays heuristic-only: `ResolveDomain` continues to
+  classify via wikilink-margin scoring against existing domain content.
+  Reason: the fork's "advisory + heuristic + entity-graph" philosophy
+  treats explicit registration as friction without proportional benefit
+  on an empty-vault scaffold. Reconsider if the operator's actual domains
+  end up semantically overlapping in practice.
+
+- **§7.4 `CONNECTIONS.yaml` per-domain typed connection layer — DROPPED.**
+  Superseded by Bases + typed `related:` frontmatter (`KnowledgeRipple`
+  writes `related: []` on every entity note; `bases/Knowledge.base` and
+  `bases/ActiveWork.base` are the live query layer). A separate YAML file
+  would be duplicate state.
+
+What Phase 7 shipped: §7.2 (richer INDEX template with Current State +
+Quick Links sections, ≥1 external wikilink prompt), §7.3 (DomainArchive
+tool + workflow + command with active-content protection), §7.5
+(CreateDomain timestamp fix — shipped earlier in Phase 3 when the same
+template was touched).
 
 ## Gaps NOT being ported (and why)
 

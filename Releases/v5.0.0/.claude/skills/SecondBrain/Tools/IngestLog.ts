@@ -38,7 +38,8 @@ export type IngestEvent = {
     | "create-domain"
     | "harvest"
     | "absorb"
-    | "split";
+    | "split"
+    | "archive-domain";
   source_note?: string;
   target_note?: string;
   entity?: string;

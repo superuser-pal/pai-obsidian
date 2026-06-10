@@ -55,6 +55,7 @@ Three rules govern routing:
 | New topical area | `/create-domain <Name>` | Scaffold `domains/<Name>/{INDEX,01_PROJECTS,02_PAGES,03_ARCHIVE}` |
 | Audit domain hygiene | `/validate-vault` | Advisory report: skeleton, naming, orphans, depth, frontmatter |
 | Rebuild INDEX + rename batch | `/map-vault` | Rebuild Active Work tables; propose confirmed `git mv` with inbound link rewrites; report true orphans |
+| Deprecate a domain | `/domain-archive <Name>` | Add deprecation callout + `status: archived` to INDEX; refuses if any active project remains |
 
 See [References/CommandReference.md](References/CommandReference.md) for full per-command behavior.
 
@@ -171,6 +172,7 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 | [Tools/AbsorbNote.ts](Tools/AbsorbNote.ts) | Atomic absorb of a source note into a target page (snapshot + append + log + delete) — used by `/save` and `/distribute` when the user picks the absorb action |
 | [Tools/DetectThinking.ts](Tools/DetectThinking.ts) | Heuristic: does this raw note look like reasoning? Used by `/process` to offer routing to `thinking/` with `status: thinking` instead of `inbox/ready/` |
 | [Tools/ListThinking.ts](Tools/ListThinking.ts) | Passive reminder — walks `thinking/` and lists notes by `last_updated` (oldest first), ⚠-marks notes older than the stale threshold (default 14d). Emitted at the end of `/process` |
+| [Tools/ArchiveDomain.ts](Tools/ArchiveDomain.ts) | Deprecate a whole domain — guards against active projects (`status: planning|active`), adds a callout to INDEX.md, promotes INDEX `status: archived`. Reversible by hand |
 
 ## Workflows
 
@@ -189,6 +191,7 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 | Harvest | [Workflows/Harvest.md](Workflows/Harvest.md) |
 | ValidateVault | [Workflows/ValidateVault.md](Workflows/ValidateVault.md) |
 | MapVault | [Workflows/MapVault.md](Workflows/MapVault.md) |
+| DomainArchive | [Workflows/DomainArchive.md](Workflows/DomainArchive.md) |
 
 ## References
 

@@ -39,6 +39,22 @@ Scaffold a new topical area at `domains/<Name>/`.
    `/distribute`; multi-page efforts live in `01_PROJECTS/`; stale content moves
    to `03_ARCHIVE/`._
 
+   ## Current State
+
+   _One sentence on what's happening in this domain right now (current
+   dominant project, current research question, current open thread).
+   Hand-curated — keep it terse, update when the answer changes._
+
+   ## Quick Links
+
+   _Curated entry points. Include ≥1 external wikilink to an upstream
+   resource (a Knowledge entity, another domain's INDEX, a dashboard) so
+   the domain isn't an island. Example shapes:_
+
+   - [[dashboards/TASKS]] — see open work
+   - [[domains/Knowledge/<top-entity>]] — recurring person/company in this domain
+   - [[domains/<sibling-domain>/INDEX]] — upstream/downstream connection
+
    ## Active Work
 
    _Auto-rebuilt by `/map-vault` from `01_PROJECTS/PROJECT_*.md` frontmatter
