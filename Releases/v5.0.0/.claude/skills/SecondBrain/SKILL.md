@@ -169,6 +169,8 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 | [Tools/ExtractActions.ts](Tools/ExtractActions.ts) | Scan a markdown file for `[action]` blocks (multi-line) — used by `/distribute` to offer confirmed task appends. `[todo]` does NOT extract (Phase 8 vocabulary split) |
 | [Tools/SplitNote.ts](Tools/SplitNote.ts) | Detect (`##` heading count ≥3) and apply a confirmed split of a multi-topic note into per-section pages with `synthesized-from` + bidirectional `## Related` links |
 | [Tools/AbsorbNote.ts](Tools/AbsorbNote.ts) | Atomic absorb of a source note into a target page (snapshot + append + log + delete) — used by `/save` and `/distribute` when the user picks the absorb action |
+| [Tools/DetectThinking.ts](Tools/DetectThinking.ts) | Heuristic: does this raw note look like reasoning? Used by `/process` to offer routing to `thinking/` with `status: thinking` instead of `inbox/ready/` |
+| [Tools/ListThinking.ts](Tools/ListThinking.ts) | Passive reminder — walks `thinking/` and lists notes by `last_updated` (oldest first), ⚠-marks notes older than the stale threshold (default 14d). Emitted at the end of `/process` |
 
 ## Workflows
 
