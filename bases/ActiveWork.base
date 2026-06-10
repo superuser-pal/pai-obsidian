@@ -1,0 +1,85 @@
+# ActiveWork.base — active project files across every domain.
+#
+# Phase 12 §3 (map-vault): projects carry `type: Project` (added to
+# ProjectCreate's frontmatter), so this Base can filter them cleanly without
+# coupling to filename patterns. Surfaces planning + active work only;
+# completed and archived projects are excluded.
+#
+# Stays in sync with each domain's INDEX `Active Work` table because both
+# read the same `01_PROJECTS/PROJECT_*.md` frontmatter. Bases is the
+# Obsidian-native view; the INDEX table exists for non-Bases viewers.
+#
+# Canonical project-note schema:
+#   ---
+#   type: Project
+#   name: PROJECT_<UPPER_SNAKE>
+#   domain: <DomainPascalCase>
+#   goal: "..."
+#   status: planning | active | completed | archived
+#   priority: low | medium | high | critical
+#   due_date:
+#   completion_date:
+#   tags: []
+#   created: YYYY-MM-DD
+#   last_updated: YYYY-MM-DD
+#   ---
+
+filters:
+  and:
+    - 'type == "Project"'
+    - 'or(status == "planning", status == "active")'
+
+properties:
+  domain:
+    displayName: "Domain"
+  status:
+    displayName: "Status"
+  priority:
+    displayName: "Priority"
+  goal:
+    displayName: "Goal"
+  due_date:
+    displayName: "Due"
+  last_updated:
+    displayName: "Last updated"
+
+views:
+  - type: table
+    name: "All active"
+    order:
+      - file.name
+      - domain
+      - status
+      - priority
+      - last_updated
+
+  - type: table
+    name: "Planning"
+    filters:
+      and:
+        - 'status == "planning"'
+    order:
+      - file.name
+      - domain
+      - priority
+      - last_updated
+
+  - type: table
+    name: "Active"
+    filters:
+      and:
+        - 'status == "active"'
+    order:
+      - file.name
+      - domain
+      - priority
+      - due_date
+      - last_updated
+
+  - type: cards
+    name: "By domain"
+    order:
+      - file.name
+      - domain
+      - status
+      - priority

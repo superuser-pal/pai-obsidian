@@ -54,6 +54,7 @@ Three rules govern routing:
 | Evening ritual | `/close-day` | Reconcile + reflection summary to MEMORY/LEARNING/REFLECTIONS/ |
 | New topical area | `/create-domain <Name>` | Scaffold `domains/<Name>/{INDEX,01_PROJECTS,02_PAGES,03_ARCHIVE}` |
 | Audit domain hygiene | `/validate-vault` | Advisory report: skeleton, naming, orphans, depth, frontmatter |
+| Rebuild INDEX + rename batch | `/map-vault` | Rebuild Active Work tables; propose confirmed `git mv` with inbound link rewrites; report true orphans |
 
 See [References/CommandReference.md](References/CommandReference.md) for full per-command behavior.
 
@@ -164,6 +165,7 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 | [Tools/IngestLog.ts](Tools/IngestLog.ts) | Append a lifecycle event to `MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl` |
 | [Tools/QmdUpdate.ts](Tools/QmdUpdate.ts) | Re-index vault collections; called by workflows before first search |
 | [Tools/ValidateVault.ts](Tools/ValidateVault.ts) | Audit each domain for skeleton, naming, orphan, depth, and frontmatter compliance — advisory by default, `--strict` for CI |
+| [Tools/MapVault.ts](Tools/MapVault.ts) | Rebuild domain INDEX Active Work tables from project frontmatter; propose confirmed renames with inbound `[[wikilink]]` rewrites in lockstep; report true orphans (zero inbound + outbound) |
 
 ## Workflows
 
@@ -181,6 +183,7 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 | CreateDomain | [Workflows/CreateDomain.md](Workflows/CreateDomain.md) |
 | Harvest | [Workflows/Harvest.md](Workflows/Harvest.md) |
 | ValidateVault | [Workflows/ValidateVault.md](Workflows/ValidateVault.md) |
+| MapVault | [Workflows/MapVault.md](Workflows/MapVault.md) |
 
 ## References
 

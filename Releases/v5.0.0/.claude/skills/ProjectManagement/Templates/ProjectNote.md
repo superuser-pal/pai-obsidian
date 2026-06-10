@@ -1,4 +1,5 @@
 ---
+type: Project
 name: PROJECT_NAME
 domain: domain-name
 goal: "One sentence describing the objective"

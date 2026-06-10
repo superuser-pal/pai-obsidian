@@ -48,6 +48,7 @@ Tasks not associated with a specific project in this domain.
 Fill project frontmatter:
 
 ```yaml
+type: Project
 name: PROJECT_[NAME]
 domain: [domain-name]
 goal: "[goal text]"
@@ -59,6 +60,10 @@ tags: []
 created: [today YYYY-MM-DD]
 last_updated: [today YYYY-MM-DD]
 ```
+
+`type: Project` lets `bases/ActiveWork.base` (Phase 12 §3) filter project
+files cleanly. `LintFrontmatter` exempts PROJECT_*.md from its SecondBrain
+status enum since `Project` is not a SecondBrain entity type.
 
 Every open task in the *To Do* section must carry the `#todo` tag:
 
