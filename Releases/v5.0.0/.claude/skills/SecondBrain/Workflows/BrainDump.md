@@ -36,13 +36,13 @@ next `[category]` marker or end of input.
      ```
    - Validate the write (enforce):
      ```
-     bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts inbox/raw/<slug>.md --enforce
+     bun $HOME/.claude/skills/Qmd/Tools/LintFrontmatter.ts inbox/raw/<slug>.md --enforce
      ```
      On non-zero exit, surface the linter output, leave the file in place,
      and halt the batch.
    - Log event:
      ```
-     bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts \
+     bun $HOME/.claude/skills/SecondBrain/Tools/IngestLog.ts \
        --action brain-dump \
        --source-note inbox/raw/<slug>.md \
        --type <category>

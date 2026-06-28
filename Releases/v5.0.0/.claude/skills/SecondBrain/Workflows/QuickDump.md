@@ -27,7 +27,7 @@ don't want a two-step.
    ```
 4. **Resolve target domain:**
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/ResolveDomain.ts <tmp-write-path>
+   bun $HOME/.claude/skills/SecondBrain/Tools/ResolveDomain.ts <tmp-write-path>
    ```
    - If `target` is `null` (unclear): prompt user with candidates; offer `--domain <Name>` override or `/create-domain <Name>`.
 5. **Write to `domains/<T>/02_PAGES/<YYYY-MM-DD>-<slug>.md`.**
@@ -37,17 +37,17 @@ don't want a two-step.
    write.
 7. **Validate the write (enforce):**
    ```
-   bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<YYYY-MM-DD>-<slug>.md --enforce
+   bun $HOME/.claude/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<YYYY-MM-DD>-<slug>.md --enforce
    ```
    On non-zero exit: delete the just-written file, surface the linter output, and
    halt. The step-6 snapshot retains the content for recovery.
 8. **Upsert entities** (creates typed notes in `domains/Knowledge/`):
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/KnowledgeRipple.ts <target>
+   bun $HOME/.claude/skills/SecondBrain/Tools/KnowledgeRipple.ts <target>
    ```
 9. **Log:**
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts \
+   bun $HOME/.claude/skills/SecondBrain/Tools/IngestLog.ts \
      --action quick-dump --source-note <target>
    ```
 10. **Report:** target path, type, count of entity notes upserted into `domains/Knowledge/`.

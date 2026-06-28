@@ -65,7 +65,7 @@ move outside git.)
 ### 5. Validate the write (enforce)
 
 ```
-bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/03_ARCHIVE/<name>.md --enforce
+bun $HOME/.claude/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/03_ARCHIVE/<name>.md --enforce
 ```
 
 On non-zero exit, roll back the move (`git mv` back to `02_PAGES/`) and the
@@ -83,7 +83,7 @@ move that link into an Archive section (create it if missing):
 ### 7. Log + verify
 
 ```
-bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts \
+bun $HOME/.claude/skills/SecondBrain/Tools/IngestLog.ts \
   --action archive-page \
   --source-note domains/<T>/02_PAGES/<name>.md \
   --target-note domains/<T>/03_ARCHIVE/<name>.md

@@ -10,8 +10,9 @@
  *   - VAULT root — where Obsidian content folders live (inbox/, plan/, thinking/,
  *     domains/, bases/). From `$VAULT_DIR` (or `$OBSIDIAN_VAULT`), falling back to
  *     `git rev-parse --show-toplevel` for repo==vault setups.
- *   - PAI dir — where PAI runtime state lives (`PAI/MEMORY/…`). From `$PAI_DIR`,
- *     falling back to `$HOME/.claude`.
+ *   - PAI dir — where PAI runtime state lives (`MEMORY/…`). From `$PAI_DIR` (the
+ *     framework value `~/.claude/PAI`), falling back to `$HOME/.claude/PAI`. Skills
+ *     live one level up at `~/.claude/skills`, so they are NOT under `$PAI_DIR`.
  *
  * The split is safe because no consumer mixes the two: vault-content paths
  * (including `knowledgeHome`, where typed entity notes live as of Phase 11)
@@ -49,11 +50,17 @@ export async function resolveRoot(): Promise<string> {
   return clean(result.stdout.toString());
 }
 
-/** The PAI runtime dir — where `PAI/MEMORY/…` state lives. Defaults to ~/.claude. */
+/**
+ * The PAI runtime root — where `MEMORY/…` state lives. This is the framework's
+ * `$PAI_DIR`, which settings.json sets to `~/.claude/PAI`; we honor that value and
+ * default to `~/.claude/PAI` when it's unset. NOTE: skills live one level UP at
+ * `~/.claude/skills` (siblings of `PAI/`), so they are NOT under `$PAI_DIR` —
+ * workflow docs reference tools via `$HOME/.claude/skills/…`, never `$PAI_DIR/skills`.
+ */
 export function resolvePaiDir(): string {
   const envPai = process.env.PAI_DIR;
   if (envPai && envPai.trim()) return clean(envPai);
-  return `${homedir()}/.claude`;
+  return `${homedir()}/.claude/PAI`;
 }
 
 /**
@@ -94,10 +101,10 @@ export async function vaultPaths(): Promise<{
     // handoff to PAI/MEMORY/KNOWLEDGE (which the harvester never even consumed,
     // since the ripple wrote .md and the harvester only read .json).
     knowledgeHome: `${root}/domains/Knowledge`,
-    memoryState: `${pai}/PAI/MEMORY/STATE`,
-    memoryObservability: `${pai}/PAI/MEMORY/OBSERVABILITY`,
-    memoryArchive: `${pai}/PAI/MEMORY/ARCHIVE/secondbrain-snapshots`,
-    memoryLearningReflections: `${pai}/PAI/MEMORY/LEARNING/REFLECTIONS`,
+    memoryState: `${pai}/MEMORY/STATE`,
+    memoryObservability: `${pai}/MEMORY/OBSERVABILITY`,
+    memoryArchive: `${pai}/MEMORY/ARCHIVE/secondbrain-snapshots`,
+    memoryLearningReflections: `${pai}/MEMORY/LEARNING/REFLECTIONS`,
   };
 }
 

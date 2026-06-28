@@ -6,7 +6,7 @@ Promote every file in `inbox/raw/` to `inbox/ready/` with full frontmatter.
 
 1. **Refresh search index:**
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/QmdUpdate.ts
+   bun $HOME/.claude/skills/SecondBrain/Tools/QmdUpdate.ts
    ```
 2. **List `inbox/raw/*.md`** (sorted by mtime ascending — process oldest first).
 3. **For each raw file:**
@@ -14,12 +14,12 @@ Promote every file in `inbox/raw/` to `inbox/ready/` with full frontmatter.
    - Run advisory lint on the raw input (warnings only — never block here;
      /process exists to fix what's missing):
      ```
-     bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts <file>
+     bun $HOME/.claude/skills/Qmd/Tools/LintFrontmatter.ts <file>
      ```
    - **Thinking offer (Phase 12 §6)** — check if this note looks like
      reasoning/scratchpad:
      ```
-     bun $PAI_DIR/skills/SecondBrain/Tools/DetectThinking.ts <file> --json
+     bun $HOME/.claude/skills/SecondBrain/Tools/DetectThinking.ts <file> --json
      ```
      If `is_thinking: true` AND the file is not already in `thinking/`,
      surface to user: *"This looks like reasoning (signals: <list>).
@@ -44,7 +44,7 @@ Promote every file in `inbox/raw/` to `inbox/ready/` with full frontmatter.
    - Write the new file content to `inbox/ready/<same-name>`.
    - Validate the write (enforce):
      ```
-     bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts inbox/ready/<name> --enforce
+     bun $HOME/.claude/skills/Qmd/Tools/LintFrontmatter.ts inbox/ready/<name> --enforce
      ```
      On non-zero exit: leave both raw and ready in place, surface the
      finding, mark this file `held` in the report, and continue with the
@@ -52,11 +52,11 @@ Promote every file in `inbox/raw/` to `inbox/ready/` with full frontmatter.
    - Remove the file from `inbox/raw/`.
    - Add to pending queue:
      ```
-     bun $PAI_DIR/skills/SecondBrain/Tools/QueueUpdate.ts add inbox/ready/<name> --title "<title>"
+     bun $HOME/.claude/skills/SecondBrain/Tools/QueueUpdate.ts add inbox/ready/<name> --title "<title>"
      ```
    - Log:
      ```
-     bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts \
+     bun $HOME/.claude/skills/SecondBrain/Tools/IngestLog.ts \
        --action process \
        --source-note inbox/raw/<name> \
        --target-note inbox/ready/<name>
@@ -67,7 +67,7 @@ Promote every file in `inbox/raw/` to `inbox/ready/` with full frontmatter.
    batch, list current `thinking/` notes so the user has a passive nudge
    on what's still in reasoning:
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/ListThinking.ts
+   bun $HOME/.claude/skills/SecondBrain/Tools/ListThinking.ts
    ```
    Sorted oldest first; notes older than 14 days get a ⚠ stale marker.
    This is informational — never interactive, never blocks. Promote =

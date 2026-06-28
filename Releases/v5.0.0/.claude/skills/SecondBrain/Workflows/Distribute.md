@@ -7,14 +7,14 @@ entities, preview cascade.
 
 1. **Refresh index:**
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/QmdUpdate.ts
+   bun $HOME/.claude/skills/SecondBrain/Tools/QmdUpdate.ts
    ```
 2. **List `inbox/ready/*.md`** (sorted by queue order — `QueueUpdate.ts list --pending`).
 
 3. **Routing plan — confirm before any move (FR 2.3.2).**
    Resolve every ready file's destination *first*, then present the plan:
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/ResolveDomain.ts inbox/ready/<name>
+   bun $HOME/.claude/skills/SecondBrain/Tools/ResolveDomain.ts inbox/ready/<name>
    ```
    - `target` is a domain name → row `inbox/ready/<name> → domains/<target>/02_PAGES/<name>`.
    - `target` is `null` (`reason: unclear`) → row `held — <candidate list>`.
@@ -29,7 +29,7 @@ entities, preview cascade.
    ### a. Snapshot
    ```
    cp inbox/ready/<name> \
-     $PAI_DIR/PAI/MEMORY/ARCHIVE/secondbrain-snapshots/$(date -u +%Y%m%dT%H%M%SZ)-<slug>.md
+     $PAI_DIR/MEMORY/ARCHIVE/secondbrain-snapshots/$(date -u +%Y%m%dT%H%M%SZ)-<slug>.md
    ```
    (Create the dir if needed; per plan §4 it's gitignored.)
 
@@ -44,7 +44,7 @@ entities, preview cascade.
       - `status: processed` (promote from `ready`).
    3. Validate (enforce):
       ```
-      bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<name> --enforce
+      bun $HOME/.claude/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<name> --enforce
       ```
       On non-zero exit, roll back **both**: restore the pre-promotion
       frontmatter AND `git mv` back to `inbox/ready/<name>`. Surface the finding,
@@ -61,7 +61,7 @@ entities, preview cascade.
 
    ### d. Ripple (entity upsert)
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/KnowledgeRipple.ts domains/<T>/02_PAGES/<name>
+   bun $HOME/.claude/skills/SecondBrain/Tools/KnowledgeRipple.ts domains/<T>/02_PAGES/<name>
    ```
    Outputs JSON `{ written: [...], skipped: [...] }`. The `written` paths are
    typed entity notes created in `domains/Knowledge/` (type: person|company|idea|
@@ -75,7 +75,7 @@ entities, preview cascade.
    (Phase 8 vocabulary split).
 
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/ExtractActions.ts \
+   bun $HOME/.claude/skills/SecondBrain/Tools/ExtractActions.ts \
      domains/<T>/02_PAGES/<name> --json
    ```
 
@@ -116,8 +116,8 @@ entities, preview cascade.
 
    ### g. Queue + log
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/QueueUpdate.ts complete inbox/ready/<name> --target domains/<T>/02_PAGES/<name>
-   bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts \
+   bun $HOME/.claude/skills/SecondBrain/Tools/QueueUpdate.ts complete inbox/ready/<name> --target domains/<T>/02_PAGES/<name>
+   bun $HOME/.claude/skills/SecondBrain/Tools/IngestLog.ts \
      --action distribute \
      --source-note inbox/ready/<name> \
      --target-note domains/<T>/02_PAGES/<name>
@@ -148,13 +148,13 @@ returns a near-duplicate target (≥80% similarity) for a different name,
 delegate to `AbsorbNote.ts`:
 
 ```
-bun $PAI_DIR/skills/SecondBrain/Tools/AbsorbNote.ts \
+bun $HOME/.claude/skills/SecondBrain/Tools/AbsorbNote.ts \
   --source inbox/ready/<name> \
   --target domains/<T>/02_PAGES/<existing>
 ```
 
 The tool does four steps atomically:
-1. Snapshot the source to `$PAI_DIR/PAI/MEMORY/ARCHIVE/secondbrain-snapshots/`
+1. Snapshot the source to `$PAI_DIR/MEMORY/ARCHIVE/secondbrain-snapshots/`
 2. Append source body under `## Absorbed from <source-stem>` in target
 3. Log `{action: absorb, source_note, target_note, snapshot}` to IngestLog
 4. Delete the source
@@ -168,7 +168,7 @@ After a successful distribute (file landed at
 `domains/<T>/02_PAGES/<name>`), scan the page for split-eligibility:
 
 ```
-bun $PAI_DIR/skills/SecondBrain/Tools/SplitNote.ts \
+bun $HOME/.claude/skills/SecondBrain/Tools/SplitNote.ts \
   domains/<T>/02_PAGES/<name> --json
 ```
 
@@ -177,7 +177,7 @@ Trigger: `meets_threshold: true` (≥3 top-level `##` headings with content).
 If the user confirms the split:
 
 ```
-bun $PAI_DIR/skills/SecondBrain/Tools/SplitNote.ts \
+bun $HOME/.claude/skills/SecondBrain/Tools/SplitNote.ts \
   domains/<T>/02_PAGES/<name> --apply \
   --target-dir domains/<T>/02_PAGES/
 ```

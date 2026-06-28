@@ -4,7 +4,7 @@
  * typed entity note for each one directly into the VAULT.
  *
  * Phase 11 (vault as single source of truth): this tool used to write .md stubs
- * into `$PAI_DIR/PAI/MEMORY/KNOWLEDGE/_harvest-queue/` for PAI's harvester to
+ * into `$PAI_DIR/MEMORY/KNOWLEDGE/_harvest-queue/` for PAI's harvester to
  * consume — but the harvester only ever read `.json`, so those stubs were never
  * picked up (a dead handoff). It now writes the entity note straight into the
  * vault at `$VAULT_DIR/domains/Knowledge/<slug>.md` with `type:` frontmatter,

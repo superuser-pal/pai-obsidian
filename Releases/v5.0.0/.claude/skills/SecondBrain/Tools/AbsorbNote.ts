@@ -10,7 +10,7 @@
  * source appended into target twice).
  *
  * Sequence:
- *   1. Snapshot the source to $PAI_DIR/PAI/MEMORY/ARCHIVE/secondbrain-snapshots/
+ *   1. Snapshot the source to $PAI_DIR/MEMORY/ARCHIVE/secondbrain-snapshots/
  *   2. Append source body (or named --section) to target under an
  *      "## Absorbed from <source-stem>" heading, demoting the absorbed
  *      content's headings so they nest beneath it (no H1 collision)

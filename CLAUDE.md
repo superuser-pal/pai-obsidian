@@ -131,4 +131,6 @@ folder's `.gitignore` in your own private fork if you want to version its conten
 
 - `bun/bunx` always. Never `npm/npx`.
 - TypeScript always.
-- Never hardcode paths — use `${PAI_DIR}` or relative paths.
+- Never hardcode install paths. Reference PAI runtime state via `${PAI_DIR}` (the
+  framework value `~/.claude/PAI`) and skill tools via `$HOME/.claude/skills/…` (skills are
+  siblings of `PAI/`, not under `$PAI_DIR`); otherwise use relative paths.

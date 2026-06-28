@@ -16,7 +16,7 @@ QuickDump. Use when the source is worth a moment of curation.
      to `<path>` (score X%). **Absorb** into it, replace it, or keep both?"
    - **Absorb** (Phase 12 §5 — formalized) → delegate to `AbsorbNote.ts`:
      ```
-     bun $PAI_DIR/skills/SecondBrain/Tools/AbsorbNote.ts \
+     bun $HOME/.claude/skills/SecondBrain/Tools/AbsorbNote.ts \
        --source <staged-save-path> \
        --target <existing-page>
      ```
@@ -36,7 +36,7 @@ QuickDump. Use when the source is worth a moment of curation.
 7. **Snapshot + write to `domains/<T>/02_PAGES/<slug>.md`.**
 8. **Validate the write (enforce):**
    ```
-   bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<slug>.md --enforce
+   bun $HOME/.claude/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<slug>.md --enforce
    ```
    On non-zero exit: delete the just-written file (the snapshot already
    exists for recovery), surface the linter output, and halt.

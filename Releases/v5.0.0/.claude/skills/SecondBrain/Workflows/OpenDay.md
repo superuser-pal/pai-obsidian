@@ -5,7 +5,7 @@ Morning ritual. Creates `plan/<DD-MM-YY>.md` and stages the day's context for th
 ## Steps
 
 1. **Resolve date** (`--date YYYY-MM-DD` or today).
-2. **Read TELOS context** from `$PAI_DIR/PAI/USER/TELOS/`:
+2. **Read TELOS context** from `$PAI_DIR/USER/TELOS/`:
    - `MISSION.md` (top 1–2 missions)
    - `GOALS.md` (active goals)
    - `CHALLENGES.md` (current frictions)
@@ -23,7 +23,7 @@ Morning ritual. Creates `plan/<DD-MM-YY>.md` and stages the day's context for th
 
 4. **Read pending queue:**
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/QueueUpdate.ts list --pending
+   bun $HOME/.claude/skills/SecondBrain/Tools/QueueUpdate.ts list --pending
    ```
 
 5. **Write `plan/<DD-MM-YY>.md`** (if not exists) with this template:
@@ -71,7 +71,7 @@ Morning ritual. Creates `plan/<DD-MM-YY>.md` and stages the day's context for th
 
 6. **Log:**
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts --action open-day --target-note plan/<DD-MM-YY>.md
+   bun $HOME/.claude/skills/SecondBrain/Tools/IngestLog.ts --action open-day --target-note plan/<DD-MM-YY>.md
    ```
 
 7. **Open the file in Obsidian** if `obsidian` CLI is available:

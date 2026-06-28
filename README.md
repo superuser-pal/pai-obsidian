@@ -46,7 +46,7 @@ The installer copies `.claude/` to `~/.claude/` and wires 46 skills into Claude 
 
 ## What's included
 
-39 skills ship by default. Browse [`Packs/`](Packs/) for additional skills you can install manually.
+46 skills ship by default. Browse [`Packs/`](Packs/) for additional skills you can install manually.
 
 | Group | Skills |
 |---|---|
@@ -55,7 +55,7 @@ The installer copies `.claude/` to `~/.claude/` and wires 46 skills into Claude 
 | Knowledge | ContextSearch, ISA, Knowledge, Telos |
 | Creative | Aphorisms, Art, AudioEditor, Sales, WriteStory |
 | Dev | Agents, Apify, BitterPillEngineering, Browser, CreateCLI, CreateSkill, Daemon, Delegation, Evals, Interview, Loop, Migrate, Optimize, Prompting, Webdesign |
-| Obsidian | *(coming in Phase 3)* |
+| Obsidian | Qmd, ObsidianMarkdown, ObsidianBases, ObsidianCLI, SecondBrain, ProjectManagement, DailyRituals |
 
 ---
 

@@ -13,9 +13,11 @@ topical domain — while `[[entities]]` are upserted as typed notes in the vault
 **Two anchors (pai-obsidian split):** the vault and PAI's runtime live in different
 places. Vault content folders — `inbox/`, `plan/`, `thinking/`, `domains/`, `bases/` —
 live under `$VAULT_DIR` (your Obsidian vault; falls back to the git root if you run from
-inside a repo that is the vault). PAI's runtime state lives under `$PAI_DIR` (`~/.claude`
-by default). [Tools/ResolveRoot.ts](Tools/ResolveRoot.ts) resolves both; no tool mixes
-them. Set `$VAULT_DIR` before using this skill.
+inside a repo that is the vault). PAI's runtime state lives under `$PAI_DIR`
+(`~/.claude/PAI` by default — the value `settings.json` sets). The skill's own tools live a
+level up at `~/.claude/skills/`, so workflow docs invoke them via `$HOME/.claude/skills/…`,
+not `$PAI_DIR/skills`. [Tools/ResolveRoot.ts](Tools/ResolveRoot.ts) resolves both roots; no
+tool mixes them. Set `$VAULT_DIR` before using this skill.
 
 ## Paradigm — three states, one direction
 
@@ -74,14 +76,14 @@ See [References/CommandReference.md](References/CommandReference.md) for full pe
 
 ## Key paths
 
-All runtime paths are under `$PAI_DIR` (`~/.claude` by default), NOT the vault:
+All runtime paths are under `$PAI_DIR` (`~/.claude/PAI` by default), NOT the vault:
 
 | Purpose | Path |
 |---|---|
-| Pending-distribution queue | `$PAI_DIR/PAI/MEMORY/STATE/secondbrain-queue.md` |
-| Lifecycle event log | `$PAI_DIR/PAI/MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl` |
-| Pre-distribute snapshots | `$PAI_DIR/PAI/MEMORY/ARCHIVE/secondbrain-snapshots/` |
-| Daily reflections | `$PAI_DIR/PAI/MEMORY/LEARNING/REFLECTIONS/secondbrain-close-day.jsonl` |
+| Pending-distribution queue | `$PAI_DIR/MEMORY/STATE/secondbrain-queue.md` |
+| Lifecycle event log | `$PAI_DIR/MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl` |
+| Pre-distribute snapshots | `$PAI_DIR/MEMORY/ARCHIVE/secondbrain-snapshots/` |
+| Daily reflections | `$PAI_DIR/MEMORY/LEARNING/REFLECTIONS/secondbrain-close-day.jsonl` |
 | Typed entity notes (in the VAULT) | `$VAULT_DIR/domains/Knowledge/<slug>.md` |
 
 The first four are PAI-managed runtime state — never user-edited, and they live in the

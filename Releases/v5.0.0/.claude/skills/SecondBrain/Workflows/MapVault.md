@@ -11,7 +11,7 @@ confirmation in this workflow.
 
 1. **Run the mapper in report mode:**
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/MapVault.ts
+   bun $HOME/.claude/skills/SecondBrain/Tools/MapVault.ts
    ```
    - Scope to one domain with `--domain <Name>`.
    - `--json` for machine-readable output.
@@ -28,7 +28,7 @@ confirmation in this workflow.
 3. **Apply the Active Work table rebuild** (deterministic, recoverable —
    markers bound the section so hand-written content elsewhere stays):
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/MapVault.ts --apply
+   bun $HOME/.claude/skills/SecondBrain/Tools/MapVault.ts --apply
    ```
    Only rebuilds INDEX.md sections that have both `<!-- map-vault:begin -->`
    and `<!-- map-vault:end -->` markers. If an INDEX is missing markers, the
@@ -49,7 +49,7 @@ confirmation in this workflow.
    accepted via `--only` (comma-separated) so only those renames apply —
    true per-rename confirmation, not all-or-nothing:
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/MapVault.ts --apply-renames --only <from1>.md,<from2>.md
+   bun $HOME/.claude/skills/SecondBrain/Tools/MapVault.ts --apply-renames --only <from1>.md,<from2>.md
    ```
    If the user accepted *every* proposal, `--only` can be omitted to apply the
    whole batch. Either way the tool performs `git mv` (preserves history) for

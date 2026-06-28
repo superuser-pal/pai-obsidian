@@ -22,7 +22,7 @@ command — invoke when you suspect the qmd index is stale.
 2. **Knowledge-graph health check** (Phase 11: entities are typed vault notes,
    not a separate queue):
    ```bash
-   bun $PAI_DIR/PAI/TOOLS/KnowledgeHarvester.ts status
+   bun $PAI_DIR/TOOLS/KnowledgeHarvester.ts status
    ```
    Reports entity counts by type, quality buckets, orphan wikilinks, and stale
    low-quality notes. Browse/query the graph via `bases/Knowledge.base`.

@@ -122,7 +122,7 @@ already moved by `git mv` in step 9a — no separate delete needed.
 
 ### 10. Reindex the knowledge base
 
-Run `bun $PAI_DIR/skills/SecondBrain/Tools/QmdUpdate.ts` (or `qmd embed`) in
+Run `bun $HOME/.claude/skills/SecondBrain/Tools/QmdUpdate.ts` (or `qmd embed`) in
 the background so the archived weekly note, deleted daily notes, and updated
 projects are picked up by vault search.
 

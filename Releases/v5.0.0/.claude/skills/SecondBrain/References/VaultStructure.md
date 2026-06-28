@@ -5,8 +5,9 @@ Two anchors (pai-obsidian split):
 - **`$VAULT_DIR`** — the Obsidian vault, where content folders and `.obsidian/` live.
   Falls back to `git rev-parse --show-toplevel` when you run from inside a repo that is
   the vault (the upstream repo==vault layout still works).
-- **`$PAI_DIR`** — the global PAI install (`~/.claude` by default), where runtime
-  `PAI/MEMORY/` state lives. Separate from the vault.
+- **`$PAI_DIR`** — the PAI runtime root (`~/.claude/PAI` by default — the value
+  `settings.json` sets), where `MEMORY/` state lives. Separate from the vault. The skill's
+  tools live a level up at `~/.claude/skills/`, referenced as `$HOME/.claude/skills/…`.
 
 [../Tools/ResolveRoot.ts](../Tools/ResolveRoot.ts) resolves both; the `memory*` paths
 derive from `$PAI_DIR`, every vault-content path from `$VAULT_DIR`.
@@ -50,7 +51,7 @@ manual (user reorganization in Obsidian).
 
 ## PAI-managed paths
 
-Under `$PAI_DIR/PAI/MEMORY/` (NOT the vault), this skill writes to five paths:
+Under `$PAI_DIR/MEMORY/` (NOT the vault), this skill writes to five paths:
 
 | Path | Written by | Format |
 |---|---|---|
@@ -72,7 +73,7 @@ folders and `.claude/`. pai-obsidian installs `.claude/` globally into `~/.claud
 the vault and the runtime are separated:
 
 - Vault content → `$VAULT_DIR` (your Obsidian vault, wherever it lives)
-- Runtime state → `$PAI_DIR` (`~/.claude`, shared with the rest of PAI)
+- Runtime state → `$PAI_DIR` (`~/.claude/PAI`, shared with the rest of PAI)
 
 This keeps the harvest pipeline shared with the global PAI install while letting your
 notes vault live anywhere. Repo==vault users lose nothing: leave `$VAULT_DIR` unset and

@@ -40,13 +40,13 @@ so the note enters the lifecycle in a known state; `/process` fills in
    No `type:` — `/process` classifies. No further fields.
 5. **Validate the write (enforce):**
    ```
-   bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts <target>/<slug>.md --enforce
+   bun $HOME/.claude/skills/Qmd/Tools/LintFrontmatter.ts <target>/<slug>.md --enforce
    ```
    On non-zero exit, surface the linter output, leave the file in place for
    inspection, and halt. (Per plan: the pipeline never ships a bad-state note.)
 6. **Log the event:**
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts \
+   bun $HOME/.claude/skills/SecondBrain/Tools/IngestLog.ts \
      --action capture \
      --source-note inbox/raw/<slug>.md
    ```

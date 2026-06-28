@@ -7,7 +7,7 @@ Advisory only — no auto-fix (that's `/map-vault` in Phase 3).
 
 1. **Run the auditor:**
    ```
-   bun $PAI_DIR/skills/SecondBrain/Tools/ValidateVault.ts
+   bun $HOME/.claude/skills/SecondBrain/Tools/ValidateVault.ts
    ```
    - Scope to one domain with `--domain <Name>`.
    - `--json` for machine-readable output.
