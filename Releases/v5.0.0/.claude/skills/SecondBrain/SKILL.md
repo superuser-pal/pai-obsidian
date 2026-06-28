@@ -110,8 +110,13 @@ omit `type:` until `/process` classifies them.
 
 **Timestamp rule:** `created` and `discovered` use local time formatted as `date +"%Y-%m-%d %I:%M %p"` (e.g. `2026-05-20 08:23 PM`). Never ISO 8601, never UTC Z suffix.
 
-`type` drives the [[Entity]] classification in [Tools/ResolveDomain.ts](Tools/ResolveDomain.ts)
-and [Tools/KnowledgeRipple.ts](Tools/KnowledgeRipple.ts).
+Two `type:` vocabularies coexist: **content notes** use the capitalized set above
+(`People|Companies|Ideas|Research|Note|Daily`); **entity notes** that ripple writes into
+`domains/Knowledge/` use the singular-lowercase set (`person|company|idea|research`).
+`type` drives the [[Entity]] classification in [Tools/KnowledgeRipple.ts](Tools/KnowledgeRipple.ts),
+which folds a content note's `type:` into that entity vocabulary.
+[Tools/ResolveDomain.ts](Tools/ResolveDomain.ts) routes by `domain:` / path / tags / link-density
+— it does **not** read `type:`.
 
 ### `status:` — lifecycle enum
 
@@ -159,7 +164,7 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 
 | Tool | Purpose |
 |---|---|
-| [Tools/ResolveRoot.ts](Tools/ResolveRoot.ts) | `git rev-parse --show-toplevel` helper used by every other tool |
+| [Tools/ResolveRoot.ts](Tools/ResolveRoot.ts) | Resolves the `$VAULT_DIR` (notes) and `$PAI_DIR` (runtime) roots used by every other tool |
 | [Tools/ResolveDomain.ts](Tools/ResolveDomain.ts) | Classify a note (path + frontmatter + content heuristics) → target `domains/<Name>` |
 | [Tools/KnowledgeRipple.ts](Tools/KnowledgeRipple.ts) | Extract `[[Entity]]` wikilinks → upsert typed entity notes into `domains/Knowledge/` |
 | [Tools/QueueUpdate.ts](Tools/QueueUpdate.ts) | Append/update the pending-distribution queue at `MEMORY/STATE/secondbrain-queue.md` |
@@ -192,6 +197,7 @@ ProjectManagement governs those files; SecondBrain governs the rest.
 | ValidateVault | [Workflows/ValidateVault.md](Workflows/ValidateVault.md) |
 | MapVault | [Workflows/MapVault.md](Workflows/MapVault.md) |
 | DomainArchive | [Workflows/DomainArchive.md](Workflows/DomainArchive.md) |
+| ArchivePage | [Workflows/ArchivePage.md](Workflows/ArchivePage.md) |
 
 ## References
 

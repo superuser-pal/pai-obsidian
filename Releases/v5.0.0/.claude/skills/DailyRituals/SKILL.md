@@ -74,7 +74,12 @@ flow through `Skill("ProjectManagement", "UpdateTasks: …")`.
   lists what to substitute — fill them inline when writing the file. There is no
   Obsidian Templater dependency.
 - **Only one active week at a time.** `WeekPrep` warns if it finds an existing
-  `status: active` week file in `plan/`. Close before prepping the next.
+  `phase: active` week file in `plan/`. Close before prepping the next.
+- **`status:` vs `phase:` on week files.** `status:` is the vault lifecycle enum
+  (`processed` while live, `archived` once closed) so week files pass the
+  frontmatter linter (F7). The week's own state machine lives in `phase:`
+  (`planning → active → closed`) — that's what the week workflows grep on. Keep
+  the two in sync (close sets `status: archived` + `phase: closed`).
 - **Carried-forward tasks keep their `#todo` tag in the source file.** The week
   file is a *selection*, not a copy — the source remains canonical.
 - **Status moves at daily granularity, not weekly.** `WeekPrep` does NOT flip

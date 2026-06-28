@@ -52,7 +52,19 @@ type EntityType = "person" | "company" | "idea" | "research";
 
 const COMPANY_TOKENS = ["Corp", "Inc", "Co.", "LLC", "Ltd", "GmbH", "S.A.", "B.V."];
 const PEOPLE_RE = /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+$/;
-const ENTITY_TYPES: EntityType[] = ["person", "company", "idea", "research"];
+/**
+ * Content notes carry plural-capitalized types (`People|Companies|Ideas|Research`
+ * — the SKILL.md / AssetClasses contract) while entity notes use the singular
+ * lowercase `EntityType`. Map the former onto the latter so the documented
+ * `type:` inheritance heuristic actually fires (audit M10). Lowercased before
+ * lookup, so e.g. `Ideas` → `ideas` → `idea`.
+ */
+const TYPE_TO_ENTITY: Record<string, EntityType> = {
+  person: "person", people: "person",
+  company: "company", companies: "company",
+  idea: "idea", ideas: "idea",
+  research: "research",
+};
 
 /** Local timestamp `YYYY-MM-DD HH:MM AM/PM` — the fork's frontmatter contract. */
 function localTimestamp(d = new Date()): string {
@@ -100,10 +112,13 @@ function classify(entity: string, noteFm: Record<string, unknown>): { type: Enti
     return { type: "company", pending: false };
   }
 
-  // Inherit from the source note's frontmatter type if it's an entity type
+  // Inherit from the source note's frontmatter type if it maps to an entity
+  // type — accepts both the plural-capitalized content vocabulary (`Ideas`,
+  // `People`, …) and the singular entity vocabulary (audit M10).
   const noteType = String(noteFm.type ?? "").trim().toLowerCase();
-  if (ENTITY_TYPES.includes(noteType as EntityType)) {
-    return { type: noteType as EntityType, pending: false };
+  const inherited = TYPE_TO_ENTITY[noteType];
+  if (inherited) {
+    return { type: inherited, pending: false };
   }
 
   return { type: "idea", pending: true };

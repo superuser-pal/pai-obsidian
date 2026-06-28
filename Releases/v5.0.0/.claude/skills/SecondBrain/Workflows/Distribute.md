@@ -7,45 +7,61 @@ entities, preview cascade.
 
 1. **Refresh index:**
    ```
-   bun .claude/skills/SecondBrain/Tools/QmdUpdate.ts
+   bun $PAI_DIR/skills/SecondBrain/Tools/QmdUpdate.ts
    ```
 2. **List `inbox/ready/*.md`** (sorted by queue order — `QueueUpdate.ts list --pending`).
-3. **For each ready file:**
+
+3. **Routing plan — confirm before any move (FR 2.3.2).**
+   Resolve every ready file's destination *first*, then present the plan:
+   ```
+   bun $PAI_DIR/skills/SecondBrain/Tools/ResolveDomain.ts inbox/ready/<name>
+   ```
+   - `target` is a domain name → row `inbox/ready/<name> → domains/<target>/02_PAGES/<name>`.
+   - `target` is `null` (`reason: unclear`) → row `held — <candidate list>`.
+
+   Show the full table and ask the user to confirm: **all**, a **subset**, or
+   **per-file**. Only confirmed files proceed to step 4. For each `held` file,
+   prompt "Pick a domain or run `/create-domain <Name>` first," then skip it.
+   No file is moved until this gate is cleared.
+
+4. **For each confirmed file:**
 
    ### a. Snapshot
    ```
    cp inbox/ready/<name> \
-     .claude/PAI/MEMORY/ARCHIVE/secondbrain-snapshots/$(date -u +%Y%m%dT%H%M%SZ)-<slug>.md
+     $PAI_DIR/PAI/MEMORY/ARCHIVE/secondbrain-snapshots/$(date -u +%Y%m%dT%H%M%SZ)-<slug>.md
    ```
    (Create the dir if needed; per plan §4 it's gitignored.)
 
-   ### b. Resolve domain
-   ```
-   bun .claude/skills/SecondBrain/Tools/ResolveDomain.ts inbox/ready/<name>
-   ```
-   - If `target` is a domain name → use it.
-   - If `target` is `null` (`reason: unclear`):
-     - Print the candidate list.
-     - Prompt user: "Pick a domain or run `/create-domain <Name>` first."
-     - Halt this file; continue to next.
+   ### b. Move — then promote frontmatter (roll back BOTH on enforce-fail)
+   Move first so a failed lint never strands a half-promoted note in
+   `inbox/ready/` already stamped `status: processed` (wrong queue state for the
+   Lifecycle.base "Ready" view and the next run).
+   1. `git mv inbox/ready/<name> domains/<T>/02_PAGES/<name>` (preserve git history per CLAUDE.md vault conventions).
+   2. Promote frontmatter on the moved file:
+      - `distributed: <date +"%Y-%m-%d %I:%M %p">` (local time, never ISO Z).
+      - `domain: <T>`
+      - `status: processed` (promote from `ready`).
+   3. Validate (enforce):
+      ```
+      bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<name> --enforce
+      ```
+      On non-zero exit, roll back **both**: restore the pre-promotion
+      frontmatter AND `git mv` back to `inbox/ready/<name>`. Surface the finding,
+      mark the file `held` in the report, and continue with the next queue entry.
 
-   ### c. Move
-   - Append/promote frontmatter:
-     - `distributed: <date +"%Y-%m-%d %I:%M %p">` (local time, never ISO Z).
-     - `domain: <T>`
-     - `status: processed` (promote from `ready`).
-   - `git mv inbox/ready/<name> domains/<T>/02_PAGES/<name>` (preserve git history per CLAUDE.md vault conventions).
-   - Validate the write (enforce):
-     ```
-     bun .claude/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<name> --enforce
-     ```
-     On non-zero exit: roll back the `git mv` (`git mv` back to
-     `inbox/ready/`), surface the finding, mark this file `held` in the
-     report, and continue with the next queue entry.
+   ### c. Backlinks (FR 2.3.3) — confirmed insertion
+   Before ripple, give the note outbound links so it doesn't land as an immediate
+   V3 orphan:
+   - Always offer `[[<T>/INDEX]]` (the domain MOC link).
+   - Run `qmd query "[[<title>]]"` and offer the top entity matches as
+     `[[Entity]]` links.
+   Present the proposed links and insert (a single Edit) only those the user
+   confirms. Skip a link silently if the note already contains it.
 
    ### d. Ripple (entity upsert)
    ```
-   bun .claude/skills/SecondBrain/Tools/KnowledgeRipple.ts domains/<T>/02_PAGES/<name>
+   bun $PAI_DIR/skills/SecondBrain/Tools/KnowledgeRipple.ts domains/<T>/02_PAGES/<name>
    ```
    Outputs JSON `{ written: [...], skipped: [...] }`. The `written` paths are
    typed entity notes created in `domains/Knowledge/` (type: person|company|idea|
@@ -59,7 +75,7 @@ entities, preview cascade.
    (Phase 8 vocabulary split).
 
    ```
-   bun .claude/skills/SecondBrain/Tools/ExtractActions.ts \
+   bun $PAI_DIR/skills/SecondBrain/Tools/ExtractActions.ts \
      domains/<T>/02_PAGES/<name> --json
    ```
 
@@ -71,15 +87,17 @@ entities, preview cascade.
       - Fallback: `domains/<T>/01_PROJECTS/AD_HOC_TASKS.md` (create if
         missing — `Skill("ProjectManagement", "TaskAdd: <T> <text>")` covers
         both paths).
-   2. Compute the source tag from the chosen project file:
-      - `domains/<T>/01_PROJECTS/PROJECT_<NAME>.md` → `#<t>/<NAME>`
-        (domain folder lowercased; NAME is the suffix after `PROJECT_`)
-      - `domains/<T>/01_PROJECTS/AD_HOC_TASKS.md`  → `#<t>/AD_HOC`
-      Matches `Skill("ProjectManagement", "TaskSync")`'s tag convention.
+   2. Compute the source tag from the chosen project file. The canonical form
+      is `#<Domain>/<Name>` with the **domain folder name verbatim** (PascalCase,
+      not lowercased) — this is what ProjectManagement's TaskSync / UpdateTasks
+      route on, so the casing MUST match exactly or round-tripping breaks:
+      - `domains/<T>/01_PROJECTS/PROJECT_<NAME>.md` → `#<T>/<NAME>`
+        (`<T>` = domain folder verbatim; NAME is the suffix after `PROJECT_`)
+      - `domains/<T>/01_PROJECTS/AD_HOC_TASKS.md`  → `#<T>/AD_HOC`
    3. Append to the chosen file (under the project's `### To Do` section, or
       `## Active` for `AD_HOC_TASKS.md`):
       ```
-      - [ ] <action text> #todo #<t>/<NAME>
+      - [ ] <action text> #todo #<T>/<NAME>
       ```
    4. Confirm with the user before each append.
 
@@ -98,8 +116,8 @@ entities, preview cascade.
 
    ### g. Queue + log
    ```
-   bun .claude/skills/SecondBrain/Tools/QueueUpdate.ts complete inbox/ready/<name> --target domains/<T>/02_PAGES/<name>
-   bun .claude/skills/SecondBrain/Tools/IngestLog.ts \
+   bun $PAI_DIR/skills/SecondBrain/Tools/QueueUpdate.ts complete inbox/ready/<name> --target domains/<T>/02_PAGES/<name>
+   bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts \
      --action distribute \
      --source-note inbox/ready/<name> \
      --target-note domains/<T>/02_PAGES/<name>
@@ -130,7 +148,7 @@ returns a near-duplicate target (≥80% similarity) for a different name,
 delegate to `AbsorbNote.ts`:
 
 ```
-bun .claude/skills/SecondBrain/Tools/AbsorbNote.ts \
+bun $PAI_DIR/skills/SecondBrain/Tools/AbsorbNote.ts \
   --source inbox/ready/<name> \
   --target domains/<T>/02_PAGES/<existing>
 ```
@@ -150,7 +168,7 @@ After a successful distribute (file landed at
 `domains/<T>/02_PAGES/<name>`), scan the page for split-eligibility:
 
 ```
-bun .claude/skills/SecondBrain/Tools/SplitNote.ts \
+bun $PAI_DIR/skills/SecondBrain/Tools/SplitNote.ts \
   domains/<T>/02_PAGES/<name> --json
 ```
 
@@ -159,7 +177,7 @@ Trigger: `meets_threshold: true` (≥3 top-level `##` headings with content).
 If the user confirms the split:
 
 ```
-bun .claude/skills/SecondBrain/Tools/SplitNote.ts \
+bun $PAI_DIR/skills/SecondBrain/Tools/SplitNote.ts \
   domains/<T>/02_PAGES/<name> --apply \
   --target-dir domains/<T>/02_PAGES/
 ```

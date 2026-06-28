@@ -11,7 +11,7 @@ surface anything that should escalate beyond the harvest queue.
 3. **Read today's ingest events:**
    ```bash
    today=$(date -u +%Y-%m-%d)
-   grep "\"ts\":\"${today}T" .claude/PAI/MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl
+   grep "\"ts\":\"${today}T" $PAI_DIR/PAI/MEMORY/OBSERVABILITY/secondbrain-ingest.jsonl
    ```
 4. **Aggregate counts** by action:
    - `captured` (capture + brain-dump + quick-dump + save + ingest-url)
@@ -24,8 +24,8 @@ surface anything that should escalate beyond the harvest queue.
    - **Surprises:** unexpected patterns from the events.
 6. **Append to LEARNING/REFLECTIONS:**
    ```bash
-   mkdir -p .claude/PAI/MEMORY/LEARNING/REFLECTIONS
-   cat >> .claude/PAI/MEMORY/LEARNING/REFLECTIONS/secondbrain-close-day.jsonl << EOF
+   mkdir -p $PAI_DIR/PAI/MEMORY/LEARNING/REFLECTIONS
+   cat >> $PAI_DIR/PAI/MEMORY/LEARNING/REFLECTIONS/secondbrain-close-day.jsonl << EOF
    {"ts":"$(date -u +%FT%TZ)","date":"$today","captured":$C,"processed":$P,"distributed":$D,"entities_upserted":$H,"highlights":[...],"loose_threads":[...],"surprises":[...]}
    EOF
    ```
@@ -36,7 +36,7 @@ surface anything that should escalate beyond the harvest queue.
    explicitly. The user may want to correct its `type:` (it defaulted to `idea`).
 9. **Log:**
    ```
-   bun .claude/skills/SecondBrain/Tools/IngestLog.ts --action close-day --source-note plan/<DD-MM-YY>.md
+   bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts --action close-day --source-note plan/<DD-MM-YY>.md
    ```
 10. **Report** the path to the updated plan file + reflection summary.
 

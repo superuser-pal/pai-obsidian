@@ -7,7 +7,7 @@ Advisory only — no auto-fix (that's `/map-vault` in Phase 3).
 
 1. **Run the auditor:**
    ```
-   bun .claude/skills/SecondBrain/Tools/ValidateVault.ts
+   bun $PAI_DIR/skills/SecondBrain/Tools/ValidateVault.ts
    ```
    - Scope to one domain with `--domain <Name>`.
    - `--json` for machine-readable output.
@@ -26,7 +26,10 @@ Advisory only — no auto-fix (that's `/map-vault` in Phase 3).
    | F*  | `LintFrontmatter` findings (F1–F7) per file | warn / info |
 
    `domains/Knowledge/` is treated as a special domain (entity-notes flat
-   folder managed by `KnowledgeRipple`) — skeleton + naming rules don't apply.
+   folder managed by `KnowledgeRipple`) — skeleton + naming rules don't apply,
+   and V3 (orphan) is skipped entirely: entity notes link via frontmatter
+   (`related:`/`seen_in:`), which the body-only orphan check can't see. Special
+   domains are still walked for `LintFrontmatter` findings.
 
 3. **Present findings to the user.** Group by domain; for each finding show
    `[severity] code path: message`. End with the totals line.
@@ -43,9 +46,11 @@ Advisory only — no auto-fix (that's `/map-vault` in Phase 3).
   requires walking the whole vault to build a backlink index, which Phase 3's
   `/map-vault` does anyway when it rebuilds Active Work tables. Don't
   duplicate the scan here.
-- **Excluded from V3:** `INDEX.md` and `AD_HOC_TASKS.md` — these list things
-  via other syntaxes (project sections, task checkboxes), so they routinely
-  ship with no wikilinks and aren't orphans in any useful sense.
+- **Excluded from V3:** `INDEX.md`, `AD_HOC_TASKS.md`, and `PROJECT_*.md` —
+  these list things via other syntaxes (project sections, task checkboxes), so
+  they routinely ship with no wikilinks and aren't orphans in any useful sense.
+  Notes in special domains (e.g. `Knowledge`) are excluded too — they link via
+  frontmatter, not body wikilinks.
 
 ## When to run
 

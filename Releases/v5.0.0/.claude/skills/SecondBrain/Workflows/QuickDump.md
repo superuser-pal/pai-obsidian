@@ -27,25 +27,27 @@ don't want a two-step.
    ```
 4. **Resolve target domain:**
    ```
-   bun .claude/skills/SecondBrain/Tools/ResolveDomain.ts <tmp-write-path>
+   bun $PAI_DIR/skills/SecondBrain/Tools/ResolveDomain.ts <tmp-write-path>
    ```
    - If `target` is `null` (unclear): prompt user with candidates; offer `--domain <Name>` override or `/create-domain <Name>`.
 5. **Write to `domains/<T>/02_PAGES/<YYYY-MM-DD>-<slug>.md`.**
-6. **Validate the write (enforce):**
+6. **Snapshot** the written file to `MEMORY/ARCHIVE/secondbrain-snapshots/` — BEFORE
+   the enforce gate, same ordering as Distribute. The source was raw input (not a
+   tracked file), so this snapshot is the only recovery copy if step 7 deletes the
+   write.
+7. **Validate the write (enforce):**
    ```
-   bun .claude/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<YYYY-MM-DD>-<slug>.md --enforce
+   bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts domains/<T>/02_PAGES/<YYYY-MM-DD>-<slug>.md --enforce
    ```
-   On non-zero exit: delete the just-written file (it's the only authoritative
-   copy at this point — the source was raw input, not a tracked file),
-   surface the linter output, and halt.
-7. **Upsert entities** (creates typed notes in `domains/Knowledge/`):
+   On non-zero exit: delete the just-written file, surface the linter output, and
+   halt. The step-6 snapshot retains the content for recovery.
+8. **Upsert entities** (creates typed notes in `domains/Knowledge/`):
    ```
-   bun .claude/skills/SecondBrain/Tools/KnowledgeRipple.ts <target>
+   bun $PAI_DIR/skills/SecondBrain/Tools/KnowledgeRipple.ts <target>
    ```
-8. **Snapshot** to `MEMORY/ARCHIVE/secondbrain-snapshots/` (same as Distribute).
 9. **Log:**
    ```
-   bun .claude/skills/SecondBrain/Tools/IngestLog.ts \
+   bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts \
      --action quick-dump --source-note <target>
    ```
 10. **Report:** target path, type, count of entity notes upserted into `domains/Knowledge/`.

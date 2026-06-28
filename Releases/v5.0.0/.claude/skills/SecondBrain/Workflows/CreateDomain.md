@@ -79,7 +79,7 @@ Scaffold a new topical area at `domains/<Name>/`.
 
 4. **Validate the write (enforce):**
    ```
-   bun .claude/skills/Qmd/Tools/LintFrontmatter.ts domains/<Name>/INDEX.md --enforce
+   bun $PAI_DIR/skills/Qmd/Tools/LintFrontmatter.ts domains/<Name>/INDEX.md --enforce
    ```
    On non-zero exit: leave the skeleton in place, surface the linter output,
    and halt. (Per Phase 1: the pipeline never ships a bad-state note.)
@@ -90,12 +90,12 @@ Scaffold a new topical area at `domains/<Name>/`.
 
 6. **Refresh qmd:**
    ```
-   bun .claude/skills/SecondBrain/Tools/QmdUpdate.ts
+   bun $PAI_DIR/skills/SecondBrain/Tools/QmdUpdate.ts
    ```
 
 7. **Log:**
    ```
-   bun .claude/skills/SecondBrain/Tools/IngestLog.ts \
+   bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts \
      --action create-domain \
      --target-note domains/<Name>/INDEX.md
    ```

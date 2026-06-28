@@ -21,8 +21,8 @@
  *   F2  frontmatter.type is present — required outside inbox/raw/
  *       (raw/ is intentionally partial; /process fills `type` in)
  *   F3  inbox/{raw,ready}/ files: source + discovered present (info)
- *   F4  Date-shaped fields (created, modified, discovered) parse as
- *       local "YYYY-MM-DD HH:MM AM/PM" or ISO 8601
+ *   F4  Date-shaped fields (created, modified, discovered, last_updated, date)
+ *       parse as local "YYYY-MM-DD HH:MM AM/PM" or ISO 8601
  *   F5  tags is a YAML list, not a string
  *   F6  Basic wikilink hygiene: balanced [[ ]] in body
  *   F7  frontmatter.status is present and a member of the lifecycle enum
@@ -32,8 +32,8 @@
 import { readFileSync, statSync, readdirSync } from "node:fs";
 import { join, resolve, extname } from "node:path";
 
-type Severity = "warn" | "info";
-type Finding = { code: string; severity: Severity; message: string; file: string; line?: number };
+export type Severity = "warn" | "info";
+export type Finding = { code: string; severity: Severity; message: string; file: string; line?: number };
 
 function parseFrontmatter(content: string): { fm: Record<string, unknown>; body: string; raw: string | null; startLine: number } {
   const lines = content.split("\n");
@@ -65,7 +65,8 @@ function parseFrontmatter(content: string): { fm: Record<string, unknown>; body:
     }
     const m = line.match(/^([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$/);
     if (!m) continue;
-    const [, key, rawVal] = m;
+    const key = m[1]!;
+    const rawVal = m[2]!;
     if (rawVal === "") {
       currentKey = key;
       currentList = [];
@@ -73,7 +74,7 @@ function parseFrontmatter(content: string): { fm: Record<string, unknown>; body:
     }
     const inline = rawVal.match(/^\[(.*)\]$/);
     if (inline) {
-      fm[key] = inline[1].split(",").map((s) => s.trim()).filter(Boolean);
+      fm[key] = inline[1]!.split(",").map((s) => s.trim()).filter(Boolean);
     } else {
       fm[key] = rawVal.replace(/^["']|["']$/g, "");
     }
@@ -122,10 +123,20 @@ function isProjectManagementFile(file: string): boolean {
   );
 }
 
+/**
+ * Is this a `dashboards/` MOC/hub note (anything but TASKS.md)? These are
+ * navigation entry points, not lifecycle content, so a missing `status:` is
+ * expected (no F7a). If they *do* carry a status it's still enum-checked (F7b).
+ * TASKS.md is handled separately as a ProjectManagement file.
+ */
+function isDashboardMoc(file: string): boolean {
+  return /\/dashboards\//.test(file) && !/\/dashboards\/TASKS\.md$/.test(file);
+}
+
 /** Lifecycle enum for F7. Mirrors SECOND_BRAIN_PORT_PLAN §1 + old-spec 02-INBOX §2.1.0. */
 const STATUS_VALUES = new Set(["unprocessed", "thinking", "ready", "processed", "archived"]);
 
-function lintFile(file: string): Finding[] {
+export function lintFile(file: string): Finding[] {
   const findings: Finding[] = [];
   const content = readFileSync(file, "utf-8");
   const { fm, body, raw } = parseFrontmatter(content);
@@ -159,7 +170,9 @@ function lintFile(file: string): Finding[] {
 
   // F4 — date sanity. Accepts SecondBrain's local `%Y-%m-%d %I:%M %p` format
   // (e.g. "2026-05-20 08:23 PM") and ISO 8601. See isValidTimestamp.
-  for (const k of ["created", "modified", "discovered"] as const) {
+  // `last_updated` and `date` are the fields the DailyRituals / ProjectManagement
+  // layers lean on most, so they're validated alongside the SecondBrain trio.
+  for (const k of ["created", "modified", "discovered", "last_updated", "date"] as const) {
     if (fm[k] !== undefined && !isValidTimestamp(fm[k])) {
       findings.push({ code: "F4", severity: "warn", message: `frontmatter.${k} is not a valid timestamp — expected local "YYYY-MM-DD HH:MM AM/PM" or ISO 8601 (got: ${JSON.stringify(fm[k])})`, file });
     }
@@ -185,7 +198,10 @@ function lintFile(file: string): Finding[] {
   if (vault && !isPmFile) {
     const status = fm.status;
     if (status === undefined) {
-      findings.push({ code: "F7a", severity: "warn", message: "frontmatter.status missing — expected one of: unprocessed | thinking | ready | processed | archived", file });
+      // dashboards/ MOC notes legitimately carry no lifecycle status — skip F7a.
+      if (!isDashboardMoc(file)) {
+        findings.push({ code: "F7a", severity: "warn", message: "frontmatter.status missing — expected one of: unprocessed | thinking | ready | processed | archived", file });
+      }
     } else if (typeof status !== "string" || !STATUS_VALUES.has(status)) {
       findings.push({ code: "F7b", severity: "warn", message: `frontmatter.status is not a member of the lifecycle enum (got: ${JSON.stringify(status)}; expected: unprocessed|thinking|ready|processed|archived)`, file });
     }
@@ -251,4 +267,6 @@ function main() {
   process.exit(willBlock ? 1 : 0);
 }
 
-main();
+// Only run the CLI when executed directly — importers (e.g. ValidateVault) get
+// `lintFile` without triggering arg parsing or process.exit.
+if (import.meta.main) main();

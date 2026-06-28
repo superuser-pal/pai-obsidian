@@ -23,7 +23,9 @@
  *
  *   3. Detect true orphans — notes with zero outbound AND zero inbound
  *      wikilinks. The inbound check requires a vault-wide backlink index
- *      which is built once and reused across all checks.
+ *      which is built once and reused across all checks. Links and filenames
+ *      are matched through a normalized slug key, so `[[Display Name]]` credits
+ *      `display-name.md` instead of producing a false orphan.
  *
  * Default: --report (no writes). --apply rebuilds Active Work tables.
  * --apply-renames performs the rename+rewrite batch (workflow-confirmed).
@@ -33,7 +35,12 @@
  *   bun MapVault.ts --domain Work                    # scope to one domain
  *   bun MapVault.ts --apply                          # rebuild INDEX tables
  *   bun MapVault.ts --apply-renames                  # execute rename batch
+ *   bun MapVault.ts --apply-renames --only a.md,b    # only those renames (by basename)
  *   bun MapVault.ts --json                           # machine-readable
+ *
+ * `--only <names>` (comma-separated, repeatable) makes rename application
+ * per-rename instead of all-or-nothing: the workflow can confirm one proposal,
+ * pass its source basename, and apply just that one.
  */
 
 import { readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -125,7 +132,9 @@ function wikilinksInBody(body: string): string[] {
   return [...matches].map((m) => (m[1] ?? "").trim()).filter(Boolean);
 }
 
-/** Build a backlink index: target-basename-without-extension → list of files. */
+/** Build a backlink index: normalized target slug → list of files linking to it.
+ *  Keyed via normalizeLinkKey so `[[Display Name]]` and `display-name.md` collide
+ *  on the same key (orphan lookup normalizes the file's stem the same way). */
 function buildBacklinkIndex(allFiles: string[]): Map<string, string[]> {
   const index = new Map<string, string[]>();
   for (const file of allFiles) {
@@ -135,26 +144,36 @@ function buildBacklinkIndex(allFiles: string[]): Map<string, string[]> {
     const links = wikilinksInBody(body);
     for (const link of links) {
       // Obsidian resolves [[Some Page]] → Some Page.md; [[domains/X/Y]] → that path.
-      // We index by both the bare basename AND any path-bearing form.
+      // Index by the normalized basename so humanized links match slug filenames.
       const stem = link.split("|")[0]!.trim();
-      const bare = basename(stem).replace(/\.md$/i, "");
-      if (!index.has(bare)) index.set(bare, []);
-      index.get(bare)!.push(file);
+      const key = normalizeLinkKey(basename(stem));
+      if (!key) continue;
+      if (!index.has(key)) index.set(key, []);
+      index.get(key)!.push(file);
     }
   }
   return index;
 }
 
-/** Kebab-case a filename. */
-function toKebab(name: string): string {
-  return name
+/** Canonical comparison key for a note name or wikilink target. Folds the
+ *  cosmetic differences Obsidian tolerates between a display link and a slug
+ *  filename — `[[Display Name]]`, `[[Display_Name]]`, and `display-name.md` all
+ *  reduce to `display-name`. Used for backlink/orphan matching so a humanized
+ *  link still credits its kebab-case file (was the L8 false-orphan bug). */
+function normalizeLinkKey(stem: string): string {
+  return stem
     .replace(/\.md$/i, "")
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2") // CamelCase → Camel-Case
     .replace(/[\s_]+/g, "-")
     .replace(/[^a-zA-Z0-9-]/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "")
-    .toLowerCase() + ".md";
+    .toLowerCase();
+}
+
+/** Kebab-case a filename (canonical key + `.md`). */
+function toKebab(name: string): string {
+  return normalizeLinkKey(name) + ".md";
 }
 
 /** Find inbound `[[<oldStem>]]` references and propose rewrites to `[[<newStem>]]`. */
@@ -318,19 +337,21 @@ async function mapDomain(
     }
   }
 
-  // (3) Orphans (zero inbound + zero outbound). Skip INDEX/AD_HOC_TASKS — those
-  // are navigation/aggregator pages by design.
+  // (3) Orphans (zero inbound + zero outbound). Skip INDEX/AD_HOC_TASKS and
+  // PROJECT_*.md — navigation/aggregator/task-list pages that legitimately
+  // carry no wikilinks (and PROJECT_*.md only gains an inbound link once the
+  // Active Work rebuild runs, so flagging it here is a false positive).
   const orphans: OrphanReport[] = [];
   const allMd = walkMd(domainPath);
   for (const file of allMd) {
     const base = basename(file);
-    if (base === "INDEX.md" || base === "AD_HOC_TASKS.md") continue;
+    if (base === "INDEX.md" || base === "AD_HOC_TASKS.md" || PROJECT_RE.test(base)) continue;
     let content: string;
     try { content = readFileSync(file, "utf-8"); } catch { continue; }
     const body = bodyOf(content);
     const outbound = wikilinksInBody(body).length;
-    const stem = base.replace(/\.md$/, "");
-    const inbound = (backlinks.get(stem) ?? []).filter((f) => f !== file).length;
+    const key = normalizeLinkKey(base);
+    const inbound = (backlinks.get(key) ?? []).filter((f) => f !== file).length;
     if (outbound === 0 && inbound === 0) {
       orphans.push({ file, outbound, inbound });
     }
@@ -391,6 +412,10 @@ export async function mapVault(opts: {
   domain?: string;
   applyIndex?: boolean;
   applyRenames?: boolean;
+  /** When set, only renames whose source basename is in this list are applied
+   *  (true per-rename confirmation; `--only`). Match is on basename, with or
+   *  without the `.md` suffix. */
+  only?: string[];
 } = {}): Promise<{
   vault: string;
   domains: DomainMap[];
@@ -425,7 +450,11 @@ export async function mapVault(opts: {
   let applied: { from: string; to: string; rewrites: number }[] | undefined;
   let errors: string[] | undefined;
   if (opts.applyRenames) {
-    const allRenames = domains.flatMap((d) => d.renames);
+    let allRenames = domains.flatMap((d) => d.renames);
+    if (opts.only && opts.only.length > 0) {
+      const wanted = new Set(opts.only.map((s) => s.replace(/\.md$/, "")));
+      allRenames = allRenames.filter((r) => wanted.has(basename(r.from).replace(/\.md$/, "")));
+    }
     const result = await applyRenameBatch(allRenames, paths.root);
     applied = result.applied;
     errors = result.errors;
@@ -482,8 +511,16 @@ if (import.meta.main) {
   const applyRenames = args.includes("--apply-renames");
   const domainIdx = args.indexOf("--domain");
   const domain = domainIdx >= 0 ? args[domainIdx + 1] : undefined;
+  // `--only A.md,B` (repeatable) → apply just those renames by source basename.
+  const only: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--only" && args[i + 1]) {
+      only.push(...args[i + 1]!.split(",").map((s) => s.trim()).filter(Boolean));
+      i++;
+    }
+  }
 
-  const result = await mapVault({ domain, applyIndex, applyRenames });
+  const result = await mapVault({ domain, applyIndex, applyRenames, only: only.length > 0 ? only : undefined });
 
   if (jsonMode) {
     console.log(JSON.stringify(result, null, 2));

@@ -39,7 +39,8 @@ export type IngestEvent = {
     | "harvest"
     | "absorb"
     | "split"
-    | "archive-domain";
+    | "archive-domain"
+    | "archive-page";
   source_note?: string;
   target_note?: string;
   entity?: string;

@@ -178,3 +178,21 @@ From OBSIDIAN_FORK_PLAN.md phase 3. Port in dependency order from private fork:
 7. `DailyRituals`
 
 For each: sanitize personal refs (`grep -ri "rodrigo\|canoteran\|superuser\|promptpal\|HOME/"`) before committing.
+
+---
+
+## Phase 11 deferred follow-ups
+
+Surfaced by the Phase 12 audit (`AUDIT_REPORT.md` §D4) — open items left over from the
+Phase 11 vault-as-source work that were not tracked anywhere except the plan prose.
+
+- **Pulse "Blogs" → "Research" relabel.** The Pulse wiki module still uses the old
+  "Blogs" label where the fork's taxonomy now says "Research". Relabel for consistency.
+- **KnowledgeGraph wikilink-slug normalization.** The PAI-memory `KnowledgeGraph.ts` edge
+  builder still matches wikilinks by exact stem, so `[[Display Name]]` misses
+  `display-name.md` (same root cause as audit L8). The **vault-side** half (MapVault's
+  backlink/orphan matching) was fixed in the polish pass via a shared `normalizeLinkKey`;
+  the `KnowledgeGraph.ts` side remains open.
+- **PAI/DOCUMENTATION `_harvest-queue` lore.** Documentation still references the
+  `_harvest-queue` flow that Phase 11 retired (the vault is now the single source of
+  truth). Scrub or update the stale references.

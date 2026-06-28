@@ -26,6 +26,7 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parseFrontmatter, fmTags } from "./Frontmatter.ts";
 
 const THINKING_PHRASES = [
   "thinking through",
@@ -47,35 +48,11 @@ type Signals = {
   question_density: boolean;
 };
 
-function stripFrontmatter(content: string): { body: string; fm: string[] } {
-  const lines = content.split("\n");
-  if (lines[0] !== "---") return { body: content, fm: [] };
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i] === "---") {
-      return { body: lines.slice(i + 1).join("\n"), fm: lines.slice(1, i) };
-    }
-  }
-  return { body: content, fm: [] };
-}
-
-function fmTags(fmLines: string[]): string[] {
-  for (const l of fmLines) {
-    const m = l.match(/^tags:\s*(.*)$/);
-    if (!m) continue;
-    const v = (m[1] ?? "").trim();
-    const inline = v.match(/^\[(.*)\]$/);
-    if (inline) {
-      return (inline[1] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-    }
-    return [];
-  }
-  return [];
-}
-
 function detectSignals(content: string): Signals {
-  const { body, fm } = stripFrontmatter(content);
+  const { body, fm } = parseFrontmatter(content);
   const lower = body.toLowerCase();
 
+  // Block-list-aware tag parsing (audit M7): `tags:\n  - thinking` now matches.
   const tags = fmTags(fm).map((t) => t.toLowerCase());
   const tag_thinking = tags.includes("thinking") || tags.includes("question");
 

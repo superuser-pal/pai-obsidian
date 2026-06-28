@@ -25,15 +25,22 @@
  * listing the children.
  *
  * The tool is confirmation-FREE — that's the workflow's job. Atomicity:
- * `--apply` writes children first, then rewrites source; if any write
- * fails, nothing is deleted (sections aren't removed from source until
- * after children are written successfully).
+ * `--apply` pre-checks every child path for collisions BEFORE writing any,
+ * writes children first, then rewrites source; if any write fails, nothing
+ * is deleted (sections aren't removed from source until after children are
+ * written successfully).
  */
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { resolve, basename, dirname } from "node:path";
+import { resolve, basename } from "node:path";
 
 const SPLIT_THRESHOLD = 3;
+
+/** Emit a YAML double-quoted scalar — safe for values that may contain a `:`
+ *  (e.g. a section heading like "Process: Data Collection"). */
+function yamlQuote(s: string): string {
+  return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
 
 type Section = {
   title: string;
@@ -152,8 +159,9 @@ export function planSplit(filePath: string): SplitPlan {
   };
 }
 
-/** Rewrite the source's frontmatter: replace `type:` → `Note`, ensure
- *  status: processed, and add a synthesizes: list pointing at children. */
+/** Rewrite the source's frontmatter: ensure `status: processed` and add a
+ *  `synthesizes:` list pointing at the children. (`type:` is left as-is — the
+ *  source stays whatever it was; only the children are `type: Note`.) */
 function rewriteSourceFrontmatter(fm: string, childStems: string[]): string {
   if (!fm) return fm;
   const lines = fm.trimEnd().split("\n");
@@ -200,7 +208,7 @@ function buildChildContent(plan: SplitPlan, idx: number): string {
     `discovered: ${localTimestamp()}`,
     `tags: ${tags}`,
     domain ? `domain: ${domain}` : "",
-    `title: ${child.title}`,
+    `title: ${yamlQuote(child.title)}`,
     "synthesized-from:",
     `  - "[[${sourceStem}]]"`,
     "---",
@@ -258,16 +266,20 @@ export function applySplit(plan: SplitPlan, targetDir: string): {
     throw new Error(`target-dir does not exist: ${targetDir}`);
   }
   const written: string[] = [];
-  // Write children first.
-  for (let i = 0; i < plan.sections.length; i++) {
-    const filename = plan.proposed_children[i]!.filename;
-    const path = `${targetDir}/${filename}`;
+  const childPaths = plan.proposed_children.map((c) => `${targetDir}/${c.filename}`);
+  // Pre-check EVERY child path before writing any. Otherwise a collision on a
+  // later child would throw mid-batch, leaving earlier children on disk with the
+  // source not yet rewritten — duplicated content needing manual cleanup.
+  for (const path of childPaths) {
     if (existsSync(path)) {
       throw new Error(`child already exists, refusing to overwrite: ${path}`);
     }
+  }
+  // Write children first.
+  for (let i = 0; i < plan.sections.length; i++) {
     const content = buildChildContent(plan, i);
-    writeFileSync(path, content, "utf-8");
-    written.push(path);
+    writeFileSync(childPaths[i]!, content, "utf-8");
+    written.push(childPaths[i]!);
   }
   // Then rewrite source.
   const residual = buildResidualSource(plan);

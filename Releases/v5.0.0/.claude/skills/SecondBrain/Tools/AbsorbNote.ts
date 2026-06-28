@@ -12,7 +12,8 @@
  * Sequence:
  *   1. Snapshot the source to $PAI_DIR/PAI/MEMORY/ARCHIVE/secondbrain-snapshots/
  *   2. Append source body (or named --section) to target under an
- *      "## Absorbed from <source-stem>" heading
+ *      "## Absorbed from <source-stem>" heading, demoting the absorbed
+ *      content's headings so they nest beneath it (no H1 collision)
  *   3. Log {action: absorb, source_note, target_note} to IngestLog
  *   4. Delete the source file
  *
@@ -53,8 +54,32 @@ function extractSection(body: string, heading: string): string | null {
 }
 
 function snapshotTimestamp(d = new Date()): string {
+  // Local-time components, deliberately NO `Z` suffix — these are LOCAL wall-clock
+  // stamps (matching the vault's `YYYY-MM-DD HH:MM AM/PM` convention), not UTC. A
+  // trailing `Z` would mislabel them as Zulu time.
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}Z`;
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+/**
+ * Demote ATX headings by `by` levels (clamped to h6) so absorbed content nests
+ * under the `## Absorbed from` wrapper instead of colliding — e.g. a source `# H1`
+ * would otherwise land mid-page as a top-level heading. Headings inside fenced
+ * code blocks (``` / ~~~) are left untouched.
+ */
+function demoteHeadings(md: string, by = 2): string {
+  let inFence = false;
+  return md
+    .split("\n")
+    .map((line) => {
+      if (/^(```|~~~)/.test(line)) { inFence = !inFence; return line; }
+      if (inFence) return line;
+      const h = line.match(/^(#{1,6})(\s+)(.*)$/);
+      if (!h) return line;
+      const level = Math.min(6, h[1]!.length + by);
+      return `${"#".repeat(level)}${h[2]!}${h[3]!}`;
+    })
+    .join("\n");
 }
 
 export type AbsorbOpts = {
@@ -96,6 +121,10 @@ export async function absorb(opts: AbsorbOpts): Promise<AbsorbResult> {
   } else {
     toAppend = sourceBody.trim();
   }
+
+  // Nest the absorbed content beneath the `## Absorbed from` wrapper (level 2)
+  // by demoting its headings — avoids a source H1 colliding with the target page.
+  toAppend = demoteHeadings(toAppend);
 
   const targetContent = readFileSync(target, "utf-8");
   const heading = `## Absorbed from ${sourceStem}`;

@@ -1,7 +1,8 @@
 ---
 name: W{{week_number}}_{{start_date}}
 type: week
-status: planning
+status: processed
+phase: planning
 week_number: {{week_number}}
 year: {{year}}
 start_date: {{start_date}}

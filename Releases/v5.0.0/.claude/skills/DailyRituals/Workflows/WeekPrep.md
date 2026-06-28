@@ -8,7 +8,7 @@ tasks, and activates the week.
 ### 1. Check for an active week
 
 ```bash
-grep -l "status: active" plan/W*.md 2>/dev/null
+grep -l "phase: active" plan/W*.md 2>/dev/null
 ```
 
 If one is found, surface it and ask:
@@ -49,7 +49,9 @@ Write `plan/W[NN]_YYYY-MM-DD.md` from `Templates/WeekNote.md`. Fill:
 - `week_number`, `year`, `start_date`, `end_date`
 - `week_goal`
 - `planned_capacity` = count of committed tasks
-- `status: planning`
+- `created` = `date +"%Y-%m-%d %I:%M %p"` (local format, never ISO Z — the F4 contract)
+- `status: processed` (the vault lifecycle enum), `phase: planning` (the week
+  state machine — `planning → active → closed`, tracked separately from `status`)
 
 Populate the *Committed Tasks — To Do* section with the selected `[ ]` tasks
 and the *In Progress* section with any `[/]` tasks carried forward. Preserve
@@ -60,7 +62,7 @@ the `#todo` tag and source link on every entry.
 Ask: *"Activate this week now?"*
 
 If yes:
-- Set `status: active` in the week file
+- Set `phase: active` in the week file (leave `status: processed`)
 - Do NOT touch task status in source project files — tasks stay `[ ]` until
   `/open-day` picks them as today's focus
 - Run `Skill("ProjectManagement", "TaskSync")` to refresh `dashboards/TASKS.md`

@@ -73,6 +73,10 @@ is the vault). The dashboard `dashboards/TASKS.md` sits at the vault root
 - Every task line carries the source tag `#Domain/ProjectName` (or
   `#Domain/AD_HOC` for ad-hoc tasks). This is what UpdateTasks uses to route
   edits back to source files.
+- **Canonical casing:** `Domain` is the domain folder name **verbatim**
+  (PascalCase) — never lowercased. UpdateTasks routes by exact tag match, so any
+  other producer of these tags (e.g. SecondBrain `/distribute` action
+  extraction) MUST emit the same casing or tags duplicate / fail to round-trip.
 
 ## Boundary with DailyRituals
 

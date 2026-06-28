@@ -13,9 +13,10 @@
  *   about the Q3 release plan
  *   [idea] something else (closes the previous action block)
  *
- * Each `[action]` at the start of a line opens a block. The block body runs
- * until the next `[<category>]` marker or end of input. Body is trimmed; empty
- * actions are skipped (no `- [ ]` lines with no text).
+ * Each `[action]` at the start of a line opens a block — optionally bulleted
+ * (`- [action]` / `* [Action]`) and case-insensitive. The block body runs
+ * until the next `[<category>]` marker (also bullet-tolerant) or end of input.
+ * Body is trimmed; empty actions are skipped (no `- [ ]` lines with no text).
  *
  * Frontmatter is stripped before scanning so YAML lists that happen to contain
  * `[action]` as a tag value can't accidentally trigger extraction.
@@ -50,7 +51,10 @@ export function extractActions(content: string): ActionItem[] {
   let i = 0;
   while (i < lines.length) {
     const lineText = lines[i] ?? "";
-    const match = lineText.match(/^\[action\][ \t]+(.*)$/);
+    // Bullet-tolerant + case-insensitive: matches `[action] x`, `- [action] x`,
+    // `* [Action] x`. Obsidian users naturally bullet their captures, and the
+    // old-spec capture syntax (02-INBOX §2.1.2) is bulleted.
+    const match = lineText.match(/^(?:[-*]\s+)?\[action\]\s+(.*)$/i);
     if (!match) {
       i += 1;
       continue;
@@ -61,7 +65,9 @@ export function extractActions(content: string): ActionItem[] {
     // Continue until we hit another [category] block or end of file.
     while (i < lines.length) {
       const cur = lines[i] ?? "";
-      if (/^\[\w+\]/.test(cur)) break;
+      // Same prefix-tolerance as the opener so a bulleted `- [idea] ...` line
+      // terminates the current action block instead of being absorbed into it.
+      if (/^(?:[-*]\s+)?\[\w+\]/i.test(cur)) break;
       buf.push(cur);
       i += 1;
     }

@@ -1,4 +1,4 @@
-# Inbox.base — lifecycle views grouped by `status:`.
+# Lifecycle.base — lifecycle views grouped by `status:`.
 #
 # Phase 12 (SecondBrain port): every vault note carries a `status:` from the
 # lifecycle enum (unprocessed | thinking | ready | processed | archived).

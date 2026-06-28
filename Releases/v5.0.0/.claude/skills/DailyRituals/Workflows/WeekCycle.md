@@ -7,7 +7,7 @@ synthesis → prep next week. Typically run Friday–Sunday.
 
 ### 1. Check context
 
-- Is there an active week? `grep -l "status: active" plan/W*.md 2>/dev/null`
+- Is there an active week? `grep -l "phase: active" plan/W*.md 2>/dev/null`
 - Today's date — warn (but don't block) if it's not Friday–Sunday.
 
 ### 2. Close the current week (if active)

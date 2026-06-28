@@ -27,7 +27,9 @@
 filters:
   and:
     - 'type == "Project"'
-    - 'or(status == "planning", status == "active")'
+    - or:
+        - 'status == "planning"'
+        - 'status == "active"'
 
 properties:
   domain:

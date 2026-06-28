@@ -7,7 +7,7 @@ Deprecate an entire domain. Active-content protected — refuses if any
 
 1. **Dry-run first to surface anything blocking:**
    ```
-   bun .claude/skills/SecondBrain/Tools/ArchiveDomain.ts \
+   bun $PAI_DIR/skills/SecondBrain/Tools/ArchiveDomain.ts \
      --domain <Name> --dry-run --json
    ```
    The output lists `active_projects` (if any). Exit code 2 means
@@ -24,7 +24,7 @@ Deprecate an entire domain. Active-content protected — refuses if any
 
 4. **Apply the archive:**
    ```
-   bun .claude/skills/SecondBrain/Tools/ArchiveDomain.ts \
+   bun $PAI_DIR/skills/SecondBrain/Tools/ArchiveDomain.ts \
      --domain <Name> --reason "<one line>"
    ```
    The tool:

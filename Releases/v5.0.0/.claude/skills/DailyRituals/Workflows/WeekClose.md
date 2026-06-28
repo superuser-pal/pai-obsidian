@@ -8,7 +8,7 @@ consolidates daily notes, and archives.
 ### 1. Load the active week
 
 ```bash
-grep -l "status: active" plan/W*.md 2>/dev/null
+grep -l "phase: active" plan/W*.md 2>/dev/null
 ```
 
 If none is found, ask the user to specify which week to close.
@@ -63,11 +63,15 @@ Ask:
 Set in frontmatter:
 
 ```yaml
-status: closed
+status: archived
+phase: closed
 closed: YYYY-MM-DD
 completed_count: N
 velocity: N%
 ```
+
+(`status: archived` is the vault lifecycle enum — a closed week is archived
+content; `phase: closed` is the week state machine. Keep both in sync.)
 
 Append the retrospective to the *Retrospective* section.
 
@@ -118,7 +122,7 @@ already moved by `git mv` in step 9a — no separate delete needed.
 
 ### 10. Reindex the knowledge base
 
-Run `bun .claude/skills/SecondBrain/Tools/QmdUpdate.ts` (or `qmd embed`) in
+Run `bun $PAI_DIR/skills/SecondBrain/Tools/QmdUpdate.ts` (or `qmd embed`) in
 the background so the archived weekly note, deleted daily notes, and updated
 projects are picked up by vault search.
 

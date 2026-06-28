@@ -11,9 +11,12 @@
  *       Date-prefixed slugs like 2026-05-19-team-sync.md pass.
  *   V2c Domain folder name: PascalCase (fork convention — supersedes old spec's
  *       kebab; plan §122).
- *   V3  Outbound orphan: every .md file (other than INDEX/skeleton) has ≥1
- *       `[[wikilink]]` in body. Inbound orphans are Phase 3's job (map-vault
- *       has to walk the whole vault anyway to rebuild the Active Work table).
+ *   V3  Outbound orphan: every .md file has ≥1 `[[wikilink]]` in body. Exempt:
+ *       INDEX.md / AD_HOC_TASKS.md / PROJECT_*.md (navigation + task-list pages
+ *       that legitimately carry no body links), and ALL files in special
+ *       domains (entity notes link via frontmatter, which the check strips).
+ *       Inbound orphans are Phase 3's job (map-vault has to walk the whole vault
+ *       anyway to rebuild the Active Work table).
  *   V4  Depth ≤ 3 below domain root. domains/<X>/02_PAGES/file.md is depth 2;
  *       a 4-level deep file (domains/<X>/02_PAGES/sub/sub2/file.md, depth 4)
  *       gets flagged.
@@ -39,9 +42,10 @@
  * No auto-fix — that's Phase 3 (`map-vault`).
  */
 
-import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
-import { join, basename, relative, dirname } from "node:path";
+import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { join, basename, relative } from "node:path";
 import { vaultPaths } from "./ResolveRoot.ts";
+import { lintFile } from "../../Qmd/Tools/LintFrontmatter.ts";
 
 type Severity = "warn" | "info";
 type Finding = { code: string; severity: Severity; message: string; file: string };
@@ -87,21 +91,6 @@ function extractWikilinks(content: string): string[] {
 function depthBelow(domainRoot: string, file: string): number {
   const rel = relative(domainRoot, file);
   return rel.split("/").length;
-}
-
-async function runLinterJson(file: string): Promise<Finding[]> {
-  // Shell out to LintFrontmatter --json. Pre-existing tsc errors there make
-  // importing risky; spawning is the same shape SecondBrain workflows use.
-  const linter = join(dirname(import.meta.path), "..", "..", "Qmd", "Tools", "LintFrontmatter.ts");
-  const proc = Bun.spawn(["bun", linter, file, "--json"], { stdout: "pipe", stderr: "pipe" });
-  const out = await new Response(proc.stdout).text();
-  await proc.exited;
-  try {
-    const parsed = JSON.parse(out) as { findings?: Finding[] };
-    return parsed.findings ?? [];
-  } catch {
-    return [];
-  }
 }
 
 type DomainReport = {
@@ -177,10 +166,15 @@ async function validateDomain(domainPath: string): Promise<DomainReport> {
   // V3 — outbound orphans + V4 — depth + LintFrontmatter delegation per .md
   const allMd = walkMd(domainPath);
   for (const file of allMd) {
-    // Skip INDEX.md and AD_HOC_TASKS.md from V3 — they're navigation/aggregator
-    // pages whose role is to list other notes via different syntaxes.
+    // V3 is skipped entirely for special domains (Knowledge): ripple-created
+    // entity notes carry their links in frontmatter (`related:`/`seen_in:`),
+    // which the orphan check strips, so every entity note is a false positive.
+    // Also exempt navigation/aggregator pages whose role is to list other notes
+    // via different syntaxes: INDEX.md, AD_HOC_TASKS.md, and PROJECT_*.md task
+    // lists (which legitimately carry no body wikilinks).
     const base = basename(file);
-    if (base !== "INDEX.md" && base !== "AD_HOC_TASKS.md") {
+    const v3Exempt = special || base === "INDEX.md" || base === "AD_HOC_TASKS.md" || PROJECT_RE.test(base);
+    if (!v3Exempt) {
       try {
         const content = readFileSync(file, "utf-8");
         const links = extractWikilinks(content);
@@ -213,12 +207,23 @@ async function validateDomain(domainPath: string): Promise<DomainReport> {
       });
     }
 
-    // Delegate frontmatter checks to LintFrontmatter (advisory format).
-    const lintFindings = await runLinterJson(file);
-    findings.push(...lintFindings);
+    // Delegate frontmatter checks to LintFrontmatter (imported directly — no
+    // per-file subprocess). lintFile is advisory and never exits the process.
+    findings.push(...lintFile(file));
   }
 
-  return { name, path: domainPath, special, findings, fileCount: allMd.length };
+  // L6 — collapse double-reports for misnamed project files. A file flagged by
+  // V2a (bad project name) loses LintFrontmatter's path-based PM exemption, so it
+  // *also* draws F1/F2/F7a/F7b — confusing noise for one root cause. Suppress the
+  // PM-exemptible frontmatter findings on any file that already has a V2a finding;
+  // fixing the name restores the real exemption and clears them for good.
+  const v2aFiles = new Set(findings.filter((f) => f.code === "V2a").map((f) => f.file));
+  const pmExemptCodes = new Set(["F1", "F2", "F7a", "F7b"]);
+  const deduped = v2aFiles.size === 0
+    ? findings
+    : findings.filter((f) => !(v2aFiles.has(f.file) && pmExemptCodes.has(f.code)));
+
+  return { name, path: domainPath, special, findings: deduped, fileCount: allMd.length };
 }
 
 export async function validateVault(opts: { domain?: string } = {}): Promise<{

@@ -5,7 +5,7 @@ Morning ritual. Creates `plan/<DD-MM-YY>.md` and stages the day's context for th
 ## Steps
 
 1. **Resolve date** (`--date YYYY-MM-DD` or today).
-2. **Read TELOS context** from `.claude/PAI/USER/TELOS/`:
+2. **Read TELOS context** from `$PAI_DIR/PAI/USER/TELOS/`:
    - `MISSION.md` (top 1–2 missions)
    - `GOALS.md` (active goals)
    - `CHALLENGES.md` (current frictions)
@@ -23,18 +23,23 @@ Morning ritual. Creates `plan/<DD-MM-YY>.md` and stages the day's context for th
 
 4. **Read pending queue:**
    ```
-   bun .claude/skills/SecondBrain/Tools/QueueUpdate.ts list --pending
+   bun $PAI_DIR/skills/SecondBrain/Tools/QueueUpdate.ts list --pending
    ```
 
 5. **Write `plan/<DD-MM-YY>.md`** (if not exists) with this template:
 
+   Timestamps use the local format (`date +"%Y-%m-%d %I:%M %p"`), never ISO Z —
+   the F4 contract, matching AssetClasses §Daily. `status: processed` is required
+   (AssetClasses §Daily); without it every `/open-day` note fails F7a.
+
    ```markdown
    ---
    type: Daily
-   created: <ISO now>
+   status: processed
+   created: <date +"%Y-%m-%d %I:%M %p">
    date: <YYYY-MM-DD>
    source: open-day
-   discovered: <ISO now>
+   discovered: <date +"%Y-%m-%d %I:%M %p">
    tags: [daily]
    title: <YYYY-MM-DD> — <Weekday>
    ---
@@ -66,7 +71,7 @@ Morning ritual. Creates `plan/<DD-MM-YY>.md` and stages the day's context for th
 
 6. **Log:**
    ```
-   bun .claude/skills/SecondBrain/Tools/IngestLog.ts --action open-day --target-note plan/<DD-MM-YY>.md
+   bun $PAI_DIR/skills/SecondBrain/Tools/IngestLog.ts --action open-day --target-note plan/<DD-MM-YY>.md
    ```
 
 7. **Open the file in Obsidian** if `obsidian` CLI is available:

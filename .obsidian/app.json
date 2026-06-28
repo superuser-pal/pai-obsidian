@@ -1,0 +1,27 @@
+{
+  "attachmentFolderPath": "./",
+  "newFileLocation": "folder",
+  "alwaysUpdateLinks": true,
+  "spellcheck": false,
+  "newFileFolderPath": "inbox/raw",
+  "propertiesInDocument": "visible",
+  "promptDelete": false,
+  "userIgnoreFilters": [
+    ".git/",
+    "node_modules/",
+    ".claude/Tools/",
+    "documents/Releases/",
+    ".github/",
+    "documents/Packs/",
+    "documents/pai-tour/",
+    ".claude/Plans/",
+    ".claude/PAI/MEMORY/STATE/",
+    ".claude/PAI/MEMORY/OBSERVABILITY/",
+    ".claude/PAI/MEMORY/RAW/",
+    ".claude/PAI/MEMORY/LEARNING/",
+    ".claude/PAI/MEMORY/ARCHIVE/",
+    ".claude/PAI/MEMORY/VOICE/",
+    ".claude/PAI/MEMORY/SECURITY/",
+    ".claude/PAI/MEMORY/WORK/"
+  ]
+}

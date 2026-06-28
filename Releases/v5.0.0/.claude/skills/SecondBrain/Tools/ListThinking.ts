@@ -3,10 +3,11 @@
  * ListThinking.ts — passive reminder for `$VAULT_DIR/thinking/` notes
  * (Phase 12 §6 / old-spec §2.2.0b).
  *
- * Walks `thinking/`, reads each note's `last_updated` (fall back to
- * `created`, fall back to file mtime), sorts ascending (oldest first), and
- * emits a list with a `⚠ stale` marker on items older than the threshold
- * (default 14 days; tunable with `--stale-days <N>`).
+ * Walks `thinking/` recursively (subfolders hold Council/RedTeam outputs),
+ * scopes to in-flight notes (`status: thinking` or no status), reads each
+ * note's `last_updated` (fall back to `created`, fall back to file mtime),
+ * sorts ascending (oldest first), and emits a list with a `⚠ stale` marker on
+ * items older than the threshold (default 14 days; tunable with `--stale-days <N>`).
  *
  * This is the "non-interactive reminder block" the plan calls for. The
  * workflow prints the list AFTER processing, never prompts on it — the
@@ -33,6 +34,20 @@ type ThinkingNote = {
   age_days: number;
   stale: boolean;
 };
+
+/** Recursively collect `.md` files under `dir` (skips dotfiles/dotdirs).
+ *  thinking/ holds Council/RedTeam outputs in subfolders per the vault
+ *  conventions, so a flat scan would miss them. */
+function walkMd(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) continue;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walkMd(full));
+    else if (entry.isFile() && entry.name.endsWith(".md")) out.push(full);
+  }
+  return out;
+}
 
 function parseFrontmatter(content: string): Record<string, string> {
   const lines = content.split("\n");
@@ -82,12 +97,15 @@ export async function listThinking(opts: { staleDays?: number } = {}): Promise<{
 
   if (!existsSync(dir)) return { thinking_dir: dir, stale_days: staleDays, notes: [] };
 
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name.startsWith(".") || !entry.isFile() || !entry.name.endsWith(".md")) continue;
-    const file = join(dir, entry.name);
+  for (const file of walkMd(dir)) {
     let content: string;
     try { content = readFileSync(file, "utf-8"); } catch { continue; }
     const fm = parseFrontmatter(content);
+    // Scope to in-flight thinking notes (old-spec §2.2.0b): `status: thinking`,
+    // or no status at all (Council/RedTeam outputs in subfolders often carry no
+    // frontmatter). A note explicitly promoted to another status — processed,
+    // ready, archived — has left the thinking state and no longer nags.
+    if (fm.status && fm.status !== "thinking") continue;
     const { display, date } = pickLastUpdated(file, fm);
     const age_ms = now - date.getTime();
     const age_days = Math.floor(age_ms / (1000 * 60 * 60 * 24));
@@ -117,7 +135,7 @@ function formatHuman(result: Awaited<ReturnType<typeof listThinking>>): string {
   }
   lines.push("");
   lines.push("Promote: move to inbox/raw/, drop status: thinking, re-run /process");
-  lines.push("Archive: move to domains/<T>/03_ARCHIVE/ and set status: archived");
+  lines.push("Archive: /page-archive <path> (deprecation header + git mv to 03_ARCHIVE/)");
   return lines.join("\n");
 }
 

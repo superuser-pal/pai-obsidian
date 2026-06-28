@@ -2,9 +2,12 @@
 
 Every note has a `type:` in its frontmatter. The type drives:
 
-- Classification in `ResolveDomain.ts` (for `/distribute`)
-- Entity routing in `KnowledgeRipple.ts` (for typed entity notes in `domains/Knowledge/`)
+- Entity classification in `KnowledgeRipple.ts` (mapping a content note's `type:` to the
+  singular entity vocabulary for typed entity notes in `domains/Knowledge/`)
 - Daily reflection categorization (for `/close-day`)
+
+(`ResolveDomain.ts` — used by `/distribute` — routes by `domain:` / path / tags / link-density,
+*not* by `type:`.)
 
 ## Five primary types
 
@@ -21,6 +24,19 @@ Plus one workflow-specific:
 | Type | When | Example |
 |---|---|---|
 | `Daily` | One file per day, created by `/open-day` | `plan/19-05-26.md` |
+
+### Two type vocabularies
+
+There are deliberately **two** type vocabularies, and they must stay mapped:
+
+- **Content notes** use the plural-capitalized types above (`People`,
+  `Companies`, `Ideas`, `Research`, `Note`, `Daily`).
+- **Entity notes** that `KnowledgeRipple` creates in `domains/Knowledge/` use the
+  singular lowercase `type:` — `person | company | idea | research`.
+
+`KnowledgeRipple.classify()` maps a source content note's plural type onto the
+singular entity type (`Ideas → idea`, `People → person`, …) when inheriting, so
+the documented "note frontmatter.type = Ideas" heuristic actually fires.
 
 ## Frontmatter contract by type
 

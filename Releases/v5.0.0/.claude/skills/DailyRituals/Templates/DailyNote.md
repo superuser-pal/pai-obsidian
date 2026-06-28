@@ -1,6 +1,7 @@
 ---
 date: {{date}}-{{day_suffix}}
-type: daily
+type: Daily
+status: processed
 week_ref: {{week_number}}
 description: "Daily note - {{date_readable}}"
 tags: [daily]

@@ -73,3 +73,24 @@ credentials/
 .claude/pai_updates/
 .claude/pai_backups/
 .claude/.pai-sync-history
+
+# Locally-installed runtime `.claude/` at the repo root (from install.sh) — the
+# user's live config, not shippable content. The tracked config lives under
+# Releases/*/.claude/; the leading slash anchors this to root so it never touches
+# those release directories.
+/.claude/
+
+# macOS finder junk
+.DS_Store
+
+# Obsidian per-machine window/pane state — ephemeral and machine-specific
+# (embeds absolute paths). Only the config JSONs at `.obsidian/` root ship.
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Obsidian: ship the config JSONs only, not vendored third-party code. Plugins,
+# themes, and icon packs re-install from `.obsidian/community-plugins.json`.
+.obsidian/plugins/
+.obsidian/themes/
+.obsidian/icons/
+.obsidian/excalidraw/

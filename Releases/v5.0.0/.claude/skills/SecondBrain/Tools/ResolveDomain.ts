@@ -20,30 +20,13 @@
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { resolveRoot } from "./ResolveRoot.ts";
+import { parseFrontmatter, fmTags } from "./Frontmatter.ts";
 
 type Resolution = {
   target: string | null;
   reason: "frontmatter" | "path" | "tag" | "wikilink" | "unclear";
   candidates: { name: string; score: number; signal: string }[];
 };
-
-function parseFrontmatter(content: string): { fm: Record<string, unknown>; body: string } {
-  const lines = content.split("\n");
-  if (lines[0] !== "---") return { fm: {}, body: content };
-  let end = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i] === "---") { end = i; break; }
-  }
-  if (end === -1) return { fm: {}, body: content };
-  const fm: Record<string, unknown> = {};
-  for (const line of lines.slice(1, end)) {
-    const m = line.match(/^([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$/);
-    if (!m) continue;
-    const inline = m[2]!.match(/^\[(.*)\]$/);
-    fm[m[1]!] = inline ? inline[1]!.split(",").map((s) => s.trim()) : m[2]!.replace(/^["']|["']$/g, "");
-  }
-  return { fm, body: lines.slice(end + 1).join("\n") };
-}
 
 function listDomains(root: string): string[] {
   const domainsDir = join(root, "domains");
@@ -64,9 +47,16 @@ export async function resolveDomain(notePath: string): Promise<Resolution> {
   const root = await resolveRoot();
   const domains = listDomains(root);
 
-  // 1. Explicit frontmatter
+  // 1. Explicit frontmatter — only honored if the domain actually exists.
   if (typeof fm.domain === "string" && fm.domain.trim()) {
-    return { target: fm.domain.trim(), reason: "frontmatter", candidates: [{ name: fm.domain.trim(), score: Infinity, signal: "frontmatter.domain" }] };
+    const requested = fm.domain.trim();
+    if (domains.includes(requested)) {
+      return { target: requested, reason: "frontmatter", candidates: [{ name: requested, score: Infinity, signal: "frontmatter.domain" }] };
+    }
+    // Requested domain doesn't exist under domains/ — don't let /distribute
+    // git mv into a nonexistent target. Downgrade to unclear so the workflow
+    // prompts and can offer `/create-domain <requested>`.
+    return { target: null, reason: "unclear", candidates: [{ name: requested, score: 0, signal: "frontmatter.domain:missing" }] };
   }
 
   // 2. Path hint — inbox/ready/<DomainName>/...
@@ -75,12 +65,10 @@ export async function resolveDomain(notePath: string): Promise<Resolution> {
     return { target: inboxReadyMatch[1]!, reason: "path", candidates: [{ name: inboxReadyMatch[1]!, score: Infinity, signal: "path:inbox/ready/<name>/" }] };
   }
 
-  // 3. Tag match
-  if (Array.isArray(fm.tags)) {
-    const tagHit = (fm.tags as string[]).find((t) => domains.includes(t));
-    if (tagHit) {
-      return { target: tagHit, reason: "tag", candidates: [{ name: tagHit, score: Infinity, signal: `tag:${tagHit}` }] };
-    }
+  // 3. Tag match — block-list-aware via the shared parser (audit M7).
+  const tagHit = fmTags(fm).find((t) => domains.includes(t));
+  if (tagHit) {
+    return { target: tagHit, reason: "tag", candidates: [{ name: tagHit, score: Infinity, signal: `tag:${tagHit}` }] };
   }
 
   // 4. Wikilink density

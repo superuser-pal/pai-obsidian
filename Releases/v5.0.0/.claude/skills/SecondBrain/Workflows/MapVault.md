@@ -11,7 +11,7 @@ confirmation in this workflow.
 
 1. **Run the mapper in report mode:**
    ```
-   bun .claude/skills/SecondBrain/Tools/MapVault.ts
+   bun $PAI_DIR/skills/SecondBrain/Tools/MapVault.ts
    ```
    - Scope to one domain with `--domain <Name>`.
    - `--json` for machine-readable output.
@@ -28,7 +28,7 @@ confirmation in this workflow.
 3. **Apply the Active Work table rebuild** (deterministic, recoverable —
    markers bound the section so hand-written content elsewhere stays):
    ```
-   bun .claude/skills/SecondBrain/Tools/MapVault.ts --apply
+   bun $PAI_DIR/skills/SecondBrain/Tools/MapVault.ts --apply
    ```
    Only rebuilds INDEX.md sections that have both `<!-- map-vault:begin -->`
    and `<!-- map-vault:end -->` markers. If an INDEX is missing markers, the
@@ -45,25 +45,22 @@ confirmation in this workflow.
      will re-propose it.
    - On **skip-all**: stop showing rename prompts; proceed to step 6.
 
-5. **Apply the confirmed rename batch:**
+5. **Apply the confirmed rename batch.** Pass the source basenames the user
+   accepted via `--only` (comma-separated) so only those renames apply —
+   true per-rename confirmation, not all-or-nothing:
    ```
-   bun .claude/skills/SecondBrain/Tools/MapVault.ts --apply-renames
+   bun $PAI_DIR/skills/SecondBrain/Tools/MapVault.ts --apply-renames --only <from1>.md,<from2>.md
    ```
-   Performs `git mv` (preserves history) for each confirmed rename and
-   rewrites the inbound `[[wikilink]]` references in the same pass. If a
-   non-git directory is encountered, falls back to `fs.rename`.
-
-   > In the workflow today the tool applies ALL renames in `--apply-renames`
-   > mode. To support a partial batch, the workflow layer should be wired
-   > to write a confirmed-list file the tool reads (future enhancement).
-   > For Phase 12 §3, the workflow falls back to running `--apply-renames`
-   > only after the user accepts every proposal; partial-batch is deferred.
+   If the user accepted *every* proposal, `--only` can be omitted to apply the
+   whole batch. Either way the tool performs `git mv` (preserves history) for
+   each selected rename and rewrites the inbound `[[wikilink]]` references in the
+   same pass. If a non-git directory is encountered, falls back to `fs.rename`.
 
 6. **Report orphans.** Show the orphan list to the user. Do NOT auto-delete
    — orphans are the user's call (some are works-in-progress; some are
    genuine cruft).
 
-7. **Optional refresh** of `qmd update` and the Knowledge.base / Inbox.base
+7. **Optional refresh** of `qmd update` and the Knowledge.base / Lifecycle.base
    indexes so the rename batch is reflected immediately.
 
 ## When to run
